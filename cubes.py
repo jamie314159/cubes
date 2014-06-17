@@ -7,13 +7,14 @@ from tkinter import *
 from tkinter import ttk
 
 SIZE = 512
-SCALE = 32
+SCALE = 16
 GSIZE = int(SIZE/SCALE)-1
 X_SCALE = SCALE
 Y_SCALE = SCALE
 relX_SCALE = 1
 relY_SCALE = 1
-DELAY = 1
+DELAY = 0
+GRID = 0
 
 FILL = "tan"
 
@@ -80,13 +81,13 @@ class Square:
 		self.dirs = self.getDirs()
 
 
-	def on(self):
+	def turnOn(self):
 		self.on = 1
 		self.color = "blue"
 		self.draw()
 		b.update()
 
-	def off(self):
+	def turnOff(self):
 		self.on = 0
 		self.color = "black"
 		self.draw()
@@ -96,12 +97,26 @@ class Square:
 
 class Grid:
 	def __init__(self):
-		self.grange = [(x, y) for x in range(0, GSIZE) for y in range(0, GSIZE)]
+		# 2D array of squares
 		self.grid = [[0 for x in range(0, GSIZE)] for y in range(0, GSIZE)]
+
+		self.grange = [(x, y) for x in range(0, GSIZE) for y in range(0, GSIZE)]
 		self.squares = []
 		self.coords = []
 		self.draws = []
 		self.adjecent = set([])
+
+	def adjecentTo(self, s):
+		aT = set([])
+		if (s.x+1, s.y) in self.coords:
+			aT.add((s.x+1, s.y)) 
+		if (s.x-1, s.y) in self.coords:
+			aT.add((s.x-1, s.y))
+		if (s.x, s.y+1) in self.coords:
+			aT.add((s.x, s.y+1))
+		if (s.x, s.y-1) in self.coords:
+			aT.add((s.x, s.y-1))
+		return(aT)
 
 	def checkAdjecent(self, exclude=0):
 		self.adjecent = set([])
@@ -118,31 +133,11 @@ class Grid:
 			if (s.x, s.y-1) not in self.coords:
 				self.adjecent.add((s.x, s.y-1))
 
-	def checkAdjecentS(self, x, y, s):
-		self.adjecent = set([])
-		for c in self.squares:
-			if(c != s):
-				self.adjecent.add((c.x+1, c.y))
-				self.adjecent.add((c.x-1, c.y))
-				self.adjecent.add((c.x, c.y+1))
-				self.adjecent.add((c.x, c.y-1))
-
 	def touching(self, x, y):
 		if(len(self.squares) == 0):
 			return(1)
 		else:
 			self.checkAdjecent()
-			# print(self.adjecent)
-			if((x,y) in self.adjecent):
-				return(1)
-			else:
-				return(0)
-
-	def touchingS(self, x, y, s):
-		if(len(self.squares) == 0):
-			return(1)
-		else:
-			self.checkAdjecentS(x, y, s)
 			# print(self.adjecent)
 			if((x,y) in self.adjecent):
 				return(1)
@@ -156,16 +151,6 @@ class Grid:
 		elif ((x,y) not in self.grange):
 			b = 0
 		elif not self.touching(x,y):
-			b = 0
-		return(b)
-
-	def gridCheckS(self, x, y, s):
-		b = 1
-		if ((x,y) in self.coords):
-			b = 0
-		elif ((x,y) not in self.grange):
-			b = 0
-		elif not self.touchingS(x,y,s):
 			b = 0
 		return(b)
 
@@ -202,6 +187,10 @@ class Grid:
 		pivots = set([])
 		self.checkAdjecent(s)
 
+		for t in self.adjecentTo(s):
+			if(len(self.adjecentTo(self.grid[t[0]][t[1]])) < 2):
+				return 0
+
 		if(((dirs[N] in self.coords) and (dirs[S] in self.coords)) or ((dirs[E] in self.coords) and (dirs[W] in self.coords))):
 			return(0)
 
@@ -227,36 +216,15 @@ class Grid:
 
 	# pdir, 1 = cw, -1 = ccw
 	def pivot(self, s,  pdir): #vx, vy):
+		temp = self
 		dirs = s.dirs
-		pivots = self.getPivots(s)
-		
-		
-		
+		pivots = self.getPivots(s)	
 
-		# print(len(order))
-		# print((s.x,s.y), order)
-		# print(pivots)
 		if(pivots != 0):
 			order = [x for x in dirs if x in pivots]
-		
 			if(dirs[N] in self.coords):
 				order.reverse()
-			# print(order)
-			# print(pivots)
-			# if(pdir == 0):
-						
-			# possibles = []
-			# for q in order:
-			# 	possibles.append(Square(q[0], q[1], "red"))
-			# for p in possibles:
-			# 	p.draw()
 
-			# b.update()
-
-			# time.sleep(DELAY*.5)
-			# [q.draw() for q in self.squares]
-
-			# print(order)
 			# CW
 			if(pdir == 1):
 				if((order[0][0], order[0][1]) in self.grange):
@@ -279,17 +247,13 @@ class Grid:
 					self.move(s, order[1][0], order[1][1])
 					b.update
 
-			for p in possibles:
-				p.erase()
 			return(1)
-			# if(self.gridCheckS(s.x+vx, s.y+vy, s)):
-			# 	self.move(s, s.x+vx, s.y+vy)
 		else:
 			return 0
 
 
 	def random(self):
-		return(random.choice(self.squares))
+		return(random.choice(self.squares))	
 
 
 	def clear(self):
@@ -301,8 +265,8 @@ class Grid:
 lDashW = int(SCALE/4)
 lDashOff = int(lDashW/2)
 lDash = (lDashW, SCALE-lDashW)
-grid_on = 1
-if(grid_on):
+
+if(GRID):
 	i=SCALE
 	while(i <= SIZE):
 		b.create_line(i,SCALE,i,SIZE, dash=lDash, dashoff=lDashOff)
@@ -315,20 +279,14 @@ if(grid_on):
 
 g = Grid()
 
-# [g.add(x, 15) for x in range(3, 22)]
-# [g.add(20, y) for y in range(22, 2, -1)]
-g.add(3,3)
-m = g.add(4,3)
-g.add(4,4)
-
-# x = random.randint(0, GSIZE-1)
-# y = random.randint(0, GSIZE-1)
-# g.add(x,y)
+x = random.randint(0, GSIZE-1)
+y = random.randint(0, GSIZE-1)
+g.add(x,y)
 
 i = 0
-r = random.randint(0, GSIZE*(int(GSIZE/8)))
+# r = random.randint(0, GSIZE*(int(GSIZE/8)))
+r = 150
 print("r =", r)
-# print(g.adjecent)
 while(i < r):
 	g.checkAdjecent()
 	a = random.choice(list(g.adjecent))
@@ -337,19 +295,13 @@ while(i < r):
 	if(g.add(x, y)):
 		i += 1	
 
-# for x in range(5, 25):
-# 	for y in range(5, 25):
-# 		g.add(x, y)
 
 g.draw(b)
-
 b.update()
 try:
 	while 1:
 		s = g.random()
-		# s.on()
 		f = g.pivot(s, random.choice([-1,1]))
-		# s.off()
 		# for s in g.squares:
 		# 	g.pivot(s,1)
 
