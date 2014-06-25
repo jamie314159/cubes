@@ -1,316 +1,368 @@
-# TODO: Make sure pivot doesnt strand another cube
-
-import random
-import time
-import copy
 from tkinter import *
 from tkinter import ttk
+import random
+
+# Constants ---------------------------------------------------
 
 SIZE = 512
 SCALE = 16
 GSIZE = int(SIZE/SCALE)-1
+GCENTER = int(GSIZE/2)
 X_SCALE = SCALE
 Y_SCALE = SCALE
 relX_SCALE = 1
 relY_SCALE = 1
 DELAY = 0
-GRID = 0
 
+GRID = 1
+DASHWIDTH = 2
+DASH = (DASHWIDTH, SCALE-DASHWIDTH)
+
+OUTLINE = "black"
 FILL = "tan"
-
-N 	= 0
-NE	= 1
-E 	= 2
-SE 	= 3
-S 	= 4
-SW  = 5
-W 	= 6
-NW	= 7
 
 CW = 1
 CCW = -1
+
+X = 0
+Y = 1
+
+N 	= 0
+NE 	= 1
+E 	= 2
+SE 	= 3
+S 	= 4
+SW 	= 5
+W 	= 6
+NW 	= 7
+
+DA = [N,E,S,W]
+DB = [N,NE,E,SE,S,SW,W,NW]
+DC = [(0,-1), (1,-1), (1,0), (1,1), (0,1), (-1,1), (-1,0), (-1,-1)]
+
+squaresList = []
+squaresCoords = [[0 for i in range(GSIZE)] for j in range(GSIZE)]
+
+# Functions, Procedures, Classes & Methods -----------------------------------------------------
+
+def randSquare(event):
+	ods = []
+	s = random.choice(squaresList)
+	while len(ods) == 0:
+		s = random.choice(squaresList)
+		for d in DA:
+			if s.connections[d] == 0:
+				ods.append(d)
+	d = random.choice(ods)
+	n = Square(s, d)
+
+def opposite(d):
+	return((d+4)%8)
+
+def clock(d, direction):
+	if direction == CW:
+		if d == NW:
+			return N
+		return d+1
+	return d-1
+
+def clicked(event):
+	print("test")
+
+class Square(object):
+	def __new__(cls, parent, parent_dir, master = 0, x = -1, y = -1, outline = OUTLINE, fill = FILL):
+		if(master):
+			return object.__new__(cls)
+		elif(parent):
+			x = parent.x + DC[parent_dir][0]
+			y = parent.y + DC[parent_dir][1]
+			if(x >= 0 and y >= 0 and x < GSIZE and y < GSIZE):
+				if squaresCoords[y][x] == 0:
+					if(master or parent.connections[parent_dir] == 0):
+						return object.__new__(cls)
+					
+
+
+	def __init__(self, parent, parent_dir, master = 0, x = -1, y = -1, outline = OUTLINE, fill = FILL):
+			self.master = master
+			self.connections = [0,0,0,0,0,0,0,0]
+			self.connLines = [0,0,0,0,0,0,0,0]
+			# self.connNum = 0
+
+			if(master == 1):
+				if(x == -1):
+					self.x = GCENTER
+				else:
+					self.x = x					
+
+				if(y == -1):
+					self.y = GCENTER
+				else:
+					self.y = y
+					squaresList.append(self)
+					squaresCoords[self.y][self.x] = self
+			else:
+				self.x = parent.x + DC[parent_dir][0]
+				self.y = parent.y + DC[parent_dir][1]
+				squaresList.append(self)
+				squaresCoords[self.y][self.x] = self
+			
+			self.getConnections()
+			for s in self.connections:
+				if s:
+					s.getConnections()
+					s.draw()
+
+			
+
+			self.outline = outline
+			self.fill = fill
+			self.drawing = None
+
+			self.draw()
+
+	def getConnections(self):
+		self.connections = [0,0,0,0,0,0,0,0]
+		for d in DB:
+			adjCoord = (self.x+DC[d][X], self.y+DC[d][Y])
+			if(adjCoord[X] >= 0 and adjCoord[Y] >= 0 and adjCoord[X] < GSIZE and adjCoord[Y] < GSIZE):
+				adjSquare = squaresCoords[adjCoord[Y]][adjCoord[X]]
+				if adjSquare:
+					self.connections[d] = adjSquare
+					# self.connNum += 1
+					# adjSquare.connections[opposite(d)] = self
+					# adjSquare.connNum += 1
+		# print(self.connections)
+
+	def getPivot(self, direction):
+		connlist = []
+		[connlist.append(d) for d in self.connections if d]		
+		if len(connlist) == 1:
+			return connlist[0]
+		elif len(connlist) == 2:
+			if self.connections[N] in connlist:
+				if self.connections[E] in connlist:
+					if direction == CW:
+						return self.connections[N]
+					if direction == CCW:
+						return self.connections[E]
+				if self.connections[W] in connlist:
+					if direction == CW:
+						return self.connections[W]
+					if direction == CCW:
+						return self.connections[N]
+			elif self.connections[S] in connlist:
+				if self.connections[E] in connlist:
+					if direction == CW:
+						return self.connections[E]
+					if direction == CCW:
+						return self.connections[S]
+				if self.connections[W] in connlist:
+					if direction == CW:
+						return self.connections[S]
+					if direction == CCW:
+						return self.connections[E]
+		return 0
+
+	def move(self, x, y):
+		self.erase()
+		# self.connNum = 0
+		squaresList.remove(self)
+		for l in squaresCoords:
+			if self in l:
+				l.remove(self)
+		squaresCoords[y][x] = 0
+
+		self.x = x
+		self.y = y
+		
+		squaresList.append(self)
+		squaresCoords[self.y][self.x] = self
+		self.getConnections()
+		self.draw()
+		for s in self.connections:
+			if s:
+				s.erase()
+				s.getConnections()
+				s.draw()
+		
+
+	def pivot(self, direction = CW):
+		pivot = self.getPivot(direction)
+		# print(pivot)
+		if(pivot):
+			for d in DA:
+				if self.connections[d] == pivot:
+					pDir = d
+			# print(pDir)
+			# print(self.connections[pDir])
+			x = self.x
+			y = self.y
+			while squaresCoords[y][x]:
+				x = x + DC[pDir][X]
+				y = y + DC[pDir][Y]
+				pDir = clock(pDir, -direction)
+			pDir = clock(pDir, direction)
+			
+			self.move(x, y)
+						
+			# for d in DA:
+			# 	if self.connections[d] == s:
+			# 		sd = d
+			# if s.connections[clock(opposite(sd), direction)] == 0:
+			# 	test = Square(s, clock(opposite(sd), direction))
+			# else:
+			# 	s = s.connections[clock(opposite(sd), direction)]
+			# 	sd = clock(opposite(sd), direction)
+			# 	if s.connections[clock(opposite(sd), direction)] == 0:
+			# 		test = Square(s, clock(opposite(sd), direction))
+			# if test:
+			# 	if test.connNum < 3:
+			# 		if(((test.connections[N] and test.connections[S]) == 0) and ((test.connections[E] and test.connections[W]) == 0)):
+			# 			# old = self
+			# 			# self = test
+			# 			# old.erase()
+
+			# 			# self.getConnections()
+			# 			# self.delete()
+
+			# 			self.erase()
+			# 			squaresList.remove(self)
+			# 			squaresCoords[self.y].remove(self)
+			# 			squaresCoords[self.y][self.x] = 0
+			# 			print('\n')
+			# 			for s in squaresCoords:
+			# 				print(s)
+
+			# 			test.getConnections()
+			# 			test.draw()
+
+			# 			for c in self.connections:
+			# 				if(c and c != self and c != test):
+			# 					c.fill = "blue"
+			# 					c.getConnections()
+			# 					c.draw()
+					
+			# 			for c in test.connections:
+			# 				if(c and c != self and c != test):
+			# 					c.fill = "grey"
+			# 					c.getConnections()
+			# 					c.draw()
+					
+
+
+					# self.erase()
+					# self.x = test.x
+					# self.y = test.y
+
+					# self.outline = test.outline
+					# self.fill = test.fill
+					# squaresCoords.remove(self)
+					# self.getConnections()
+					# for c in self.connections:
+					# 	if(c):
+					# 		c.getConnections()
+					# 		c.draw()
+					# self.draw()
+
+
+			# test.delete()
+
+		
+	def clicked(self, event):
+		# self.pivot(CW)
+		self.delete()
+		# self.erase()
+		# print(self.connections)
+
+	def draw(self):
+		self.erase()
+		x1 = ((self.x+1)*SCALE)
+		y1 = ((self.y+1)*SCALE)
+		x2 = ((self.x+1)*SCALE)+SCALE
+		y2 = ((self.y+1)*SCALE)+SCALE
+		self.drawing = canvas.create_rectangle(x1, y1, x2, y2, outline = self.outline, fill = self.fill, width=2)
+		canvas.tag_bind(self.drawing, '<ButtonPress>', self.clicked)
+		for c in DB:
+			if self.connections[c] != 0:
+				x1 = SCALE*(self.x+1.5)
+				y1 = SCALE*(self.y+1.5)
+				x2 = SCALE*((self.x+1.5)+(.5*DC[c][0]))
+				y2 = SCALE*((self.y+1.5)+(.5*DC[c][1]))
+				self.connLines[c] = canvas.create_line(x1, y1, x2, y2)
+				canvas.tag_bind(self.connLines[c], '<ButtonPress>', self.clicked)
+		root.update()
+
+	def erase(self):
+		if(self.drawing):
+			canvas.delete(self.drawing)
+			self.drawing = 0
+		for l in self.connLines:
+			canvas.delete(l)
+			l = 0
+		root.update()
+
+	def delete(self):
+		self.erase()
+		squaresList.remove(self)
+		squaresCoords[self.y].remove(self)
+		for s in self.connections:
+			if s:
+				s.erase()
+				s.getConnections()
+				s.draw()
+		
+
+
+
+
+# Initialize tkinter ------------------------------------------
 
 root = Tk()
 root.minsize(SIZE, SIZE)
 root.geometry(str(int(SIZE+SCALE)) + 'x' + str(int(SIZE+SCALE)))
 
+canvas = Canvas(root, width=SIZE+SCALE, height=SIZE+SCALE)
+canvas.place(relx=.5, rely=.5, anchor=CENTER)
+# canvas.bind('<ButtonPress>', randSquare)
 
-b = Canvas(root, width=SIZE+SCALE, height=SIZE+SCALE)
-b.place(relx=.5, rely=.5, anchor=CENTER)
-
-possibles = []
-class Square:
-	def __init__(self, xIn, yIn, color="#000000"):
-		self.x = xIn;
-		self.y = yIn;
-		self.dirs = self.getDirs()
-		self.color = color
-		self.on = 0
-		# self.fill = ""
-
-	def getDirs(self):
-		x = self.x;
-		y = self.y;
-		
-		N=(x,y-1)
-		NE=(x+1,y-1)
-		E=(x+1,y)
-		SE=(x+1,y+1)
-		S=(x,y+1)
-		SW=(x-1,y+1)
-		W=(x-1,y)
-		NW=(x-1,y-1)
-
-		return([N, NE, E, SE, S, SW, W, NW])
-
-	def draw(self, master=b):
-		x1 = (self.x+1)*SCALE
-		y1 = (self.y+1)*SCALE
-		x2 = (self.x+2)*SCALE
-		y2 = (self.y+2)*SCALE
-		self.master = master
-		self.drawing = master.create_rectangle(x1, y1, x2, y2, outline=self.color, width=2)
-		# print(self.drawing)
-
-	def erase(self):
-		self.master.delete(self.drawing)
-
-	def move(self, x, y):
-		self.x = x
-		self.y = y
-		self.dirs = self.getDirs()
-
-
-	def turnOn(self):
-		self.on = 1
-		self.color = "blue"
-		self.draw()
-		b.update()
-
-	def turnOff(self):
-		self.on = 0
-		self.color = "black"
-		self.draw()
-		b.update()
-
-
-
-class Grid:
-	def __init__(self):
-		# 2D array of squares
-		self.grid = [[0 for x in range(0, GSIZE)] for y in range(0, GSIZE)]
-
-		self.grange = [(x, y) for x in range(0, GSIZE) for y in range(0, GSIZE)]
-		self.squares = []
-		self.coords = []
-		self.draws = []
-		self.adjecent = set([])
-
-	def adjecentTo(self, s):
-		aT = set([])
-		if (s.x+1, s.y) in self.coords:
-			aT.add((s.x+1, s.y)) 
-		if (s.x-1, s.y) in self.coords:
-			aT.add((s.x-1, s.y))
-		if (s.x, s.y+1) in self.coords:
-			aT.add((s.x, s.y+1))
-		if (s.x, s.y-1) in self.coords:
-			aT.add((s.x, s.y-1))
-		return(aT)
-
-	def checkAdjecent(self, exclude=0):
-		self.adjecent = set([])
-		check = copy.copy(self.squares)
-		if(exclude in check):
-			check.remove(exclude)
-		for s in check:
-			if (s.x+1, s.y) not in self.coords:
-				self.adjecent.add((s.x+1, s.y)) 
-			if (s.x-1, s.y) not in self.coords:
-				self.adjecent.add((s.x-1, s.y))
-			if (s.x, s.y+1) not in self.coords:
-				self.adjecent.add((s.x, s.y+1))
-			if (s.x, s.y-1) not in self.coords:
-				self.adjecent.add((s.x, s.y-1))
-
-	def touching(self, x, y):
-		if(len(self.squares) == 0):
-			return(1)
-		else:
-			self.checkAdjecent()
-			# print(self.adjecent)
-			if((x,y) in self.adjecent):
-				return(1)
-			else:
-				return(0)
-
-	def gridCheck(self, x, y):
-		b = 1
-		if ((x,y) in self.coords):
-			b = 0
-		elif ((x,y) not in self.grange):
-			b = 0
-		elif not self.touching(x,y):
-			b = 0
-		return(b)
-
-	def add(self, x , y):
-		if(self.gridCheck(x, y)):
-			tempSquare = Square(x,y)
-			self.coords.append((tempSquare.x, tempSquare.y))
-			self.squares.append(tempSquare)
-			self.grid[x][y] = tempSquare
-			return(tempSquare)
-		else:
-			return(0)
-
-	def draw(self, master):
-		for s in self.squares:
-			if(type(s) == Square):
-				s.draw(master)
-
-	def move(self, s, x, y):
-		s.erase()
-		self.grid[x][y] = s
-		self.grid[s.x][s.y] = 0
-		self.coords.remove((s.x, s.y))
-		self.coords.append((x, y))
-		s.move(x, y)
-		s.draw(s.master)
-		s.master.update()
-
-	
-
-
-	def getPivots(self, s):
-		dirs = s.dirs
-		pivots = set([])
-		self.checkAdjecent(s)
-
-		for t in self.adjecentTo(s):
-			if(len(self.adjecentTo(self.grid[t[0]][t[1]])) < 2):
-				return 0
-
-		if(((dirs[N] in self.coords) and (dirs[S] in self.coords)) or ((dirs[E] in self.coords) and (dirs[W] in self.coords))):
-			return(0)
-
-		for i in range(0, 8):
-			if((dirs[i] not in self.coords) and (dirs[i] in self.adjecent)):
-				pivots.add(dirs[i])
-		
-		if((dirs[N] in self.coords) and (dirs[W] in self.coords) and (dirs[NW] in pivots)):
-			pivots.remove(dirs[NW])
-
-		if((dirs[N] in self.coords) and (dirs[E] in self.coords) and (dirs[NE] in pivots)):
-			pivots.remove(dirs[NE])
-
-		if((dirs[S] in self.coords) and (dirs[W] in self.coords) and (dirs[SW] in pivots)):
-			pivots.remove(dirs[SW])
-
-		if((dirs[S] in self.coords) and (dirs[E] in self.coords) and (dirs[SE] in pivots)):
-			pivots.remove(dirs[SE])
-
-
-		return(pivots)
-
-
-	# pdir, 1 = cw, -1 = ccw
-	def pivot(self, s,  pdir): #vx, vy):
-		temp = self
-		dirs = s.dirs
-		pivots = self.getPivots(s)	
-
-		if(pivots != 0):
-			order = [x for x in dirs if x in pivots]
-			if(dirs[N] in self.coords):
-				order.reverse()
-
-			# CW
-			if(pdir == 1):
-				if((order[0][0], order[0][1]) in self.grange):
-					t = Square(order[0][0], order[0][1], "red")
-					t.draw()
-					b.update()
-					time.sleep(DELAY*.5)
-					t.erase()
-					self.move(s, order[0][0], order[0][1])
-					b.update
-
-			# CCW
-			elif(pdir == -1):
-				if((order[1][0], order[1][1]) in self.grange):
-					t = Square(order[1][0], order[1][1], "red")
-					t.draw()
-					b.update()
-					time.sleep(DELAY*.5)
-					t.erase()
-					self.move(s, order[1][0], order[1][1])
-					b.update
-
-			return(1)
-		else:
-			return 0
-
-
-	def random(self):
-		return(random.choice(self.squares))	
-
-
-	def clear(self):
-		self.squares = []
-		self.coords = []
-
-
-
-lDashW = int(SCALE/4)
-lDashOff = int(lDashW/2)
-lDash = (lDashW, SCALE-lDashW)
+# Draw Grid ---------------------------------------------------
 
 if(GRID):
 	i=SCALE
 	while(i <= SIZE):
-		b.create_line(i,SCALE,i,SIZE, dash=lDash, dashoff=lDashOff)
+		canvas.create_line(i, SCALE, i, SIZE+DASHWIDTH, dash=DASH, width=DASHWIDTH)
 		i += SCALE
 
-	i=SCALE
-	while(i <= SIZE):
-		b.create_line(SCALE,i,SIZE,i, dash=lDash, dashoff=lDashOff)
-		i += SCALE
-
-g = Grid()
-
-x = random.randint(0, GSIZE-1)
-y = random.randint(0, GSIZE-1)
-g.add(x,y)
-
-i = 0
-# r = random.randint(0, GSIZE*(int(GSIZE/8)))
-r = 150
-print("r =", r)
-while(i < r):
-	g.checkAdjecent()
-	a = random.choice(list(g.adjecent))
-	x = a[0]
-	y = a[1]
-	if(g.add(x, y)):
-		i += 1	
+# -------------------------------------------------------------
 
 
-g.draw(b)
-b.update()
-try:
-	while 1:
-		s = g.random()
-		f = g.pivot(s, random.choice([-1,1]))
-		# for s in g.squares:
-		# 	g.pivot(s,1)
 
-		root.update_idletasks() # redraw
-		root.update() # process events
-		time.sleep(DELAY*f)
-		
-except TclError:
-	pass # to avoid errors when the window is closed
+master = Square(0, 0, master=1, x = 10, y = 10)
 
+n = Square(master, S)
+Square(master, W)
+for i in range(5, GSIZE-10):
+	n = Square(n, E)
+
+n = Square(master, E)
+for i in range(5, GSIZE-3):
+	n = Square(n, E)
+
+# print(master.getPivot(1))
+# master.pivot(CW)
+
+while len(squaresList) < 50:
+	s = random.choice(squaresList)
+	d = random.choice(DA)
+	n = Square(s, d)
+
+# [s.draw() for s in squaresList]
+# n.pivot(CW)
+
+# n.pivot(1)
+# [s.pivot(1) for s in squaresList]
+
+# print(squaresCoords)
 
 
