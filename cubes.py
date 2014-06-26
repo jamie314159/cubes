@@ -180,6 +180,7 @@ def clock(d, direction):
 		return d+1
 	return d-1
 
+
 def clicked(event):
 	print("test")
 
@@ -205,6 +206,8 @@ class Square(object):
 			self.outline = outline
 			self.fill = fill
 			self.drawing = None
+			self.direction = N
+			self.dirLine = 0
 			# self.connNum = 0
 
 			if(master == 1):
@@ -303,14 +306,20 @@ class Square(object):
 			x = self.x
 			y = self.y
 
+			r = 0
 			while squaresCoords[y][x]:
 				pDir = clock(pDir, -direction)
+				r += 1
 				x = self.x + DC[pDir][X]
 				y = self.y + DC[pDir][Y]
 				if x < 0 or y < 0 or x >= GSIZE or y >= GSIZE:
 					return 0
 
-				
+			print(r)
+			for i in range(0, r%2+1):
+				self.direction = clock(self.direction, direction)
+				self.direction = clock(self.direction, direction)
+
 			pDir = clock(pDir, direction)
 			
 			self.move(x, y)
@@ -327,6 +336,8 @@ class Square(object):
 			for s in self.adjacent:
 				if s:
 					adj += 1
+			if self.adjacent[0] and self.adjacent[4] or self.adjacent[2] and self.adjacent[6]:
+				fail = 1
 			if adj > 2:
 				fail = 1
 
@@ -336,6 +347,8 @@ class Square(object):
 
 			if fail:
 				self.move(oldx, oldy)
+				s.getConnections()
+				s.getConnected()
 				return 0
 			else:
 				self.draw()
@@ -392,25 +405,35 @@ class Square(object):
 		canvas.tag_bind(self.drawing, '<Button-3>', self.rClick)
 		canvas.tag_bind(self.drawing, '<Button-1>', self.lClick)
 		canvas.tag_bind(self.drawing, '<Button-2>', self.drawPath)
-		for c in DB:
-			if self.connections[c] != 0:
-				x1 = SCALE*(self.x+1.5)
-				y1 = SCALE*(self.y+1.5)
-				x2 = SCALE*((self.x+1.5)+(.5*DC[c][0]))
-				y2 = SCALE*((self.y+1.5)+(.5*DC[c][1]))
-				self.connLines[c] = canvas.create_line(x1, y1, x2, y2)
-				canvas.tag_bind(self.connLines[c], '<Button-3>', self.rClick)
-				canvas.tag_bind(self.connLines[c], '<Button-1>', self.lClick)
-				canvas.tag_bind(self.connLines[c], '<Button-2>', self.drawPath)
+		x1 = SCALE*(self.x+1.5)
+		y1 = SCALE*(self.y+1.5)
+		x2 = SCALE*((self.x+1.5)+(.5*DC[self.direction][0]))
+		y2 = SCALE*((self.y+1.5)+(.5*DC[self.direction][1]))
+		self.dirLine = canvas.create_line(x1, y1, x2, y2)
+		canvas.tag_bind(self.dirLine, '<Button-3>', self.rClick)
+		canvas.tag_bind(self.dirLine, '<Button-1>', self.lClick)
+		canvas.tag_bind(self.dirLine, '<Button-2>', self.drawPath)
+		# for c in DB:
+		# 	if self.connections[c] != 0:
+		# 		x1 = SCALE*(self.x+1.5)
+		# 		y1 = SCALE*(self.y+1.5)
+		# 		x2 = SCALE*((self.x+1.5)+(.5*DC[c][0]))
+		# 		y2 = SCALE*((self.y+1.5)+(.5*DC[c][1]))
+		# 		self.connLines[c] = canvas.create_line(x1, y1, x2, y2)
+		# 		canvas.tag_bind(self.connLines[c], '<Button-3>', self.rClick)
+		# 		canvas.tag_bind(self.connLines[c], '<Button-1>', self.lClick)
+		# 		canvas.tag_bind(self.connLines[c], '<Button-2>', self.drawPath)
 		root.update()
 
 	def erase(self):
 		if(self.drawing):
 			canvas.delete(self.drawing)
 			self.drawing = 0
-		for l in self.connLines:
-			canvas.delete(l)
-			l = 0
+		# for l in self.connLines:
+		# 	canvas.delete(l)
+		# 	l = 0
+		if(self.dirLine):
+			canvas.delete(self.dirLine)
 		root.update()
 
 	def delete(self):
@@ -450,22 +473,23 @@ if __name__ == "__main__":
 
 
 	MASTER = Square(0, 0, master=1, x = 10, y = 10)
-	# n = Square(master, S)
-	# Square(master, W)
+	n = Square(MASTER, S)
+	Square(MASTER, W)
 	# for i in range(5, GSIZE-10):
 	# 	n = Square(n, E)
 
-	# n = Square(master, E)
+	# n = Square(MASTER, E)
 	# for i in range(5, GSIZE-3):
 	# 	n = Square(n, E)
 	
-	while len(squaresList) < 300:
+	while len(squaresList) < 200:
 		n = randNewSquare()
 		# print(n)
 	
-	while(1):
-		randPivot()
-		# time.sleep(.1)
+	# while(1):
+	# 	drawPath()
+	# 	# randPivot()
+	# 	time.sleep(.5)
 		# s = random.choice(squaresList)
 		# d = random.choice(DA)
 		# n = Square(s, d)
