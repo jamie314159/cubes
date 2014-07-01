@@ -7,6 +7,8 @@ import math
 import time
 # Constants ---------------------------------------------------
 
+LINES = -1
+DIAGONALS = 0
 SIZE = 512
 SCALE = 16
 GSIZE = int(SIZE/SCALE)-1
@@ -143,6 +145,7 @@ def randPivot(event = None):
 			return n
 								
 
+
 def randNewSquare(event = None):
 	opens = []
 	while(len(squaresList) < GSIZE*GSIZE):
@@ -163,29 +166,38 @@ def randNewSquare(event = None):
 						m = Square(s, d)
 						if m:
 							return m
+
+
 			
 			
-	# if len(opens) == 0:
 
 
 	
 
-def opposite(d):
-	return((d+4)%8)
+def opposite(orientation):
+	return((orientation+4)%8)
 
-def clock(d, direction):
-	if direction == CW:
-		if d == NW:
-			return N
-		return d+1
-	return d-1
+def clock(orientation, direction, num = 1):
+	while num > 0:
+		if direction == CW:
+			if orientation == NW:
+				orientation = N
+			else:
+				orientation = orientation+1
+		elif direction == CCW:
+			if orientation == N:
+				orientation = NW
+			else:
+				orientation = orientation-1
+		num -= 1
+	return orientation
 
 
 def clicked(event):
 	print("test")
 
 class Square(object):
-	def __new__(cls, parent, parent_dir, master = 0, x = -1, y = -1, outline = OUTLINE, fill = FILL):
+	def __new__(cls, parent, parent_dir, master = 0, x = -1, y = -1, outline = OUTLINE, fill = FILL, temp = 0):
 		if(master):
 			return object.__new__(cls)
 		elif(parent):
@@ -198,17 +210,17 @@ class Square(object):
 					
 
 
-	def __init__(self, parent, parent_dir, master = 0, x = -1, y = -1, outline = OUTLINE, fill = FILL):
+	def __init__(self, parent, parent_dir, master = 0, x = -1, y = -1, outline = OUTLINE, fill = FILL, temp = 0):
 			self.master = master
+			self.temp = temp
 			self.connections = [0,0,0,0,0,0,0,0]
 			self.adjacent = [0,0,0,0,0,0,0,0]
 			self.connLines = [0,0,0,0,0,0,0,0]
 			self.outline = outline
 			self.fill = fill
 			self.drawing = None
-			self.direction = N
+			self.orientation = N
 			self.dirLine = 0
-			# self.connNum = 0
 
 			if(master == 1):
 				if(x == -1):
@@ -222,20 +234,80 @@ class Square(object):
 					self.y = y
 					squaresList.append(self)
 					squaresCoords[self.y][self.x] = self
+				self.getConnections()
+				self.connected = 1
 			else:
 				self.x = parent.x + DC[parent_dir][0]
 				self.y = parent.y + DC[parent_dir][1]
-				squaresList.append(self)
-				squaresCoords[self.y][self.x] = self
+				self.getConnections()
+				self.getConnected()
+				if not temp:
+					squaresCoords[self.y][self.x] = self
+					squaresList.append(self)
 			
-			self.getConnections()
-			# self.getConnected()
-			for s in self.connections:
-				if s:
-					s.getConnections()
-					s.draw()
+			if not temp:
+				if LINES:
+					for s in self.connections:
+						if s:
+							s.getConnections()
+							s.draw()
 
-			self.draw()
+				self.draw()
+
+	def shortestPath(self, goal):
+		def reconstruct_path(navigated, current):
+			if current in navigated:
+				p = reconstruct_path(navigated, navigated[current])
+				return p + [current]
+			else:
+				return [current]
+
+		def hc_est(self, goal):
+			a = abs(self.x - goal.x)
+			b = abs(self.y - goal.y)
+			return math.sqrt(pow(a,2)+pow(b,2))	
+
+		def lowestF(oset):
+			lowest = 0
+			for s in oset:
+				if lowest == 0:
+					lowest = s
+				elif f_score[s] < f_score[lowest]:
+					lowest = s
+			return lowest
+
+
+		closedset = set([])
+		openset = set([self])
+		navigated = {}
+
+		g_score = {}
+		f_score = {}
+
+		g_score[self] = 0
+		f_score[self] = g_score[self] + hc_est(self, goal)
+
+
+
+		while len(openset) != 0:
+			current = lowestF(openset)
+			
+			if current == goal:
+				# print(navigated)
+				return reconstruct_path(navigated, goal)
+			
+			openset.remove(current)
+			closedset.add(current)
+			for neighbor in current.adjacent:
+				if neighbor and neighbor not in closedset:
+					tent_g_score = g_score[current] + 1
+					if neighbor not in openset or tent_g_score < g_score[neighbor]:
+						navigated[neighbor] = current
+						g_score[neighbor] = tent_g_score
+						f_score[neighbor] = g_score[neighbor] + hc_est(neighbor, goal)
+						if neighbor not in openset:
+							openset.add(neighbor)
+		return 0
 
 	def getConnections(self):
 		self.connections = [0,0,0,0,0,0,0,0]
@@ -255,108 +327,54 @@ class Square(object):
 
 	def getConnected(self):
 		self.connected = 0
-		if shortestPath(self, MASTER):
+		if self.shortestPath(MASTER):
 			self.connected = 1
 			
 
-	def getPivot(self, direction):
-		connlist = []
-		[connlist.append(self.connections[d]) for d in DA if self.connections[d]]
-		if len(connlist) == 1:
-			return connlist[0]
-		elif len(connlist) == 2:
-			if self.connections[N] in connlist:
-				if self.connections[E] in connlist:
-					if direction == CW:
-						return self.connections[N]
-					if direction == CCW:
-						return self.connections[E]
-				if self.connections[W] in connlist:
-					if direction == CW:
-						return self.connections[W]
-					if direction == CCW:
-						return self.connections[N]
-			elif self.connections[S] in connlist:
-				if self.connections[E] in connlist:
-					if direction == CW:
-						return self.connections[E]
-					if direction == CCW:
-						return self.connections[S]
-				if self.connections[W] in connlist:
-					if direction == CW:
-						return self.connections[S]
-					if direction == CCW:
-						return self.connections[E]
-		return 0
-
-			
-
 	def pivot(self, direction):
-		oldx = self.x
-		oldy = self.y
-		conns = []
-		[conns.append(s) for s in self.adjacent if s]
-		pivot = self.getPivot(direction)
+		self.getConnections()
+		for d in DA:
+			if self.connections[d]:
+				pivot = d
+
+		t = clock(pivot, -direction, 2)
+		if self.connections[t]:
+			pivot = t
+			t = clock(pivot, -direction, 2)
+
+		if self.connections[opposite(pivot)] or self.connections[clock(opposite(pivot), direction)]:
+			return 0
+		else:
+			temp = Square(self, t, temp = 1)
 		
-		if(pivot):
-			for d in DA:
-				if self.connections[d] == pivot:
-					pDir = d
-			
-			x = self.x
-			y = self.y
 
-			r = 0
-			while squaresCoords[y][x]:
-				pDir = clock(pDir, -direction)
-				r += 1
-				x = self.x + DC[pDir][X]
-				y = self.y + DC[pDir][Y]
-				if x < 0 or y < 0 or x >= GSIZE or y >= GSIZE:
-					return 0
-
-			print(r)
-			for i in range(0, r%2+1):
-				self.direction = clock(self.direction, direction)
-				self.direction = clock(self.direction, direction)
-
-			pDir = clock(pDir, direction)
-			
-			self.move(x, y)
-
-			[conns.append(s) for s in self.adjacent if s]
-
-			for s in conns:
-				s.getConnections()
-				s.getConnected()
-
-			fail = 0
-
-			adj = 0
-			for s in self.adjacent:
-				if s:
-					adj += 1
-			if self.adjacent[0] and self.adjacent[4] or self.adjacent[2] and self.adjacent[6]:
-				fail = 1
-			if adj > 2:
-				fail = 1
-
-			for s in conns:
-				if s.connected == 0:
-					fail = 1
-
-			if fail:
-				self.move(oldx, oldy)
-				s.getConnections()
-				s.getConnected()
-				return 0
+		if temp:
+			if temp.connections[pivot]:
+				temp.delete()
+				self.orientation = clock(self.orientation, direction, 2)
+				if self.move(self.x + DC[t][X], self.y + DC[t][Y]):
+					return 1
+				else:
+					self.orientation = clock(self.orientation, -direction, 2)
 			else:
-				self.draw()
-				for s in conns:
-					if s:
-						s.draw()
-				return self
-							
+				if temp.connections[t]:
+					temp.delete()
+					self.orientation = clock(self.orientation, direction, 2)
+					if self.move(self.x + DC[t][X], self.y + DC[t][Y]):
+						return 1
+					else:
+						self.orientation = clock(self.orientation, -direction, 2)
+				else:
+					t = clock(pivot, -direction)
+					if not temp.connections[t]:
+						temp.delete()
+						self.orientation = clock(self.orientation, direction, 4)
+						if self.move(self.x + DC[t][X], self.y + DC[t][Y]):
+							return 1
+						else:
+							self.orientation = clock(self.orientation, -direction, 4)
+			temp.delete()
+		return 0
 
 		
 	def clicked(self, event):
@@ -373,27 +391,54 @@ class Square(object):
 		self.pivot(CCW)
 
 	def move(self, x, y):
-		oldCoord = (self.x, self.y)
+		fail = 0
+		oldx = self.x
+		oldy = self.y
 		conns = []
+		self.getConnections()
+		
 		[conns.append(s) for s in self.connections if s]
-
 		squaresCoords[self.y][self.x] = 0
-
-
-
 		self.x = x
 		self.y = y
-		
 		squaresCoords[self.y][self.x] = self
 		self.getConnections()
+		self.getConnected()
 		[conns.append(s) for s in self.connections if s]
 
-		for s in conns:
+		if not self.connected:
+			fail = 1
+
+		for s in squaresList:
 			if s:
 				s.getConnections()
+				s.getConnected()
+				if not s.connected:
+					fail = 1		
+
+		if fail:
+			squaresCoords[self.y][self.x] = 0
+			self.x = oldx
+			self.y = oldy
+			squaresCoords[self.y][self.x] = self
+			self.getConnections()
+			self.getConnected()
+			for s in squaresList:
+				if s:
+					self.getConnections()
+					s.getConnected()
+			return 0
+		else:
+			self.draw()
+			if LINES:
+				for s in conns:
+					if s:
+						s.draw()
+			return 1
+			
 
 	def drawPath(self, event):
-		drawPath(event, start =self)
+		drawPath(event, start = self)
 
 	def draw(self):
 		self.erase()
@@ -405,33 +450,41 @@ class Square(object):
 		canvas.tag_bind(self.drawing, '<Button-3>', self.rClick)
 		canvas.tag_bind(self.drawing, '<Button-1>', self.lClick)
 		canvas.tag_bind(self.drawing, '<Button-2>', self.drawPath)
-		x1 = SCALE*(self.x+1.5)
-		y1 = SCALE*(self.y+1.5)
-		x2 = SCALE*((self.x+1.5)+(.5*DC[self.direction][0]))
-		y2 = SCALE*((self.y+1.5)+(.5*DC[self.direction][1]))
-		self.dirLine = canvas.create_line(x1, y1, x2, y2)
-		canvas.tag_bind(self.dirLine, '<Button-3>', self.rClick)
-		canvas.tag_bind(self.dirLine, '<Button-1>', self.lClick)
-		canvas.tag_bind(self.dirLine, '<Button-2>', self.drawPath)
-		# for c in DB:
-		# 	if self.connections[c] != 0:
-		# 		x1 = SCALE*(self.x+1.5)
-		# 		y1 = SCALE*(self.y+1.5)
-		# 		x2 = SCALE*((self.x+1.5)+(.5*DC[c][0]))
-		# 		y2 = SCALE*((self.y+1.5)+(.5*DC[c][1]))
-		# 		self.connLines[c] = canvas.create_line(x1, y1, x2, y2)
-		# 		canvas.tag_bind(self.connLines[c], '<Button-3>', self.rClick)
-		# 		canvas.tag_bind(self.connLines[c], '<Button-1>', self.lClick)
-		# 		canvas.tag_bind(self.connLines[c], '<Button-2>', self.drawPath)
+		
+		if LINES == 1:
+			if DIAGONALS:
+				l = DB
+			else:
+				l = DA
+			for c in l:
+				if self.connections[c] != 0:
+					x1 = SCALE*(self.x+1.5)
+					y1 = SCALE*(self.y+1.5)
+					x2 = SCALE*((self.x+1.5)+(.5*DC[c][0]))
+					y2 = SCALE*((self.y+1.5)+(.5*DC[c][1]))
+					self.connLines[c] = canvas.create_line(x1, y1, x2, y2)
+					canvas.tag_bind(self.connLines[c], '<Button-3>', self.rClick)
+					canvas.tag_bind(self.connLines[c], '<Button-1>', self.lClick)
+					canvas.tag_bind(self.connLines[c], '<Button-2>', self.drawPath)
+		elif LINES == 0:
+			x1 = SCALE*(self.x+1.5)
+			y1 = SCALE*(self.y+1.5)
+			x2 = SCALE*((self.x+1.5)+(.5*DC[self.orientation][0]))
+			y2 = SCALE*((self.y+1.5)+(.5*DC[self.orientation][1]))
+			self.dirLine = canvas.create_line(x1, y1, x2, y2)
+			canvas.tag_bind(self.dirLine, '<Button-3>', self.rClick)
+			canvas.tag_bind(self.dirLine, '<Button-1>', self.lClick)
+			canvas.tag_bind(self.dirLine, '<Button-2>', self.drawPath)
 		root.update()
 
 	def erase(self):
 		if(self.drawing):
 			canvas.delete(self.drawing)
 			self.drawing = 0
-		# for l in self.connLines:
-		# 	canvas.delete(l)
-		# 	l = 0
+		if LINES:
+			for l in self.connLines:
+				canvas.delete(l)
+				l = 0
 		if(self.dirLine):
 			canvas.delete(self.dirLine)
 		root.update()
@@ -440,8 +493,9 @@ class Square(object):
 		self.erase()
 		conns = []
 		[conns.append(s) for s in self.connections if s]
-		squaresList.remove(self)
-		squaresCoords[self.y][self.x] = 0
+		if not self.temp:
+			squaresList.remove(self)
+			squaresCoords[self.y][self.x] = 0
 		self = 0
 		for s in conns:
 			s.getConnections()
@@ -474,7 +528,8 @@ if __name__ == "__main__":
 
 	MASTER = Square(0, 0, master=1, x = 10, y = 10)
 	n = Square(MASTER, S)
-	Square(MASTER, W)
+	m = Square(n, W)
+
 	# for i in range(5, GSIZE-10):
 	# 	n = Square(n, E)
 
@@ -482,14 +537,13 @@ if __name__ == "__main__":
 	# for i in range(5, GSIZE-3):
 	# 	n = Square(n, E)
 	
-	while len(squaresList) < 200:
+	while len(squaresList) < 100:
 		n = randNewSquare()
-		# print(n)
 	
 	# while(1):
-	# 	drawPath()
-	# 	# randPivot()
-	# 	time.sleep(.5)
+	# # # 	# drawPath()
+	# 	randPivot()
+	# 	time.sleep(.1)
 		# s = random.choice(squaresList)
 		# d = random.choice(DA)
 		# n = Square(s, d)
