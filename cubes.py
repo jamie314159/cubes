@@ -5,30 +5,14 @@ from tkinter import ttk
 import random
 import math
 import time
+import colorsys
 # Constants ---------------------------------------------------
 
-LINES = -1
-DIAGONALS = 0
-SIZE = 512
-SCALE = 16
-GSIZE = int(SIZE/SCALE)-1
-GCENTER = int(GSIZE/2)
-X_SCALE = SCALE
-Y_SCALE = SCALE
-relX_SCALE = 1
-relY_SCALE = 1
-DELAY = 0
-
-GRID = 1
-DASHWIDTH = 2
-DASH = (DASHWIDTH, SCALE-DASHWIDTH)
-
-OUTLINE = "black"
-FILL = "tan"
-
+# Direction deffinitions
 CW = 1
 CCW = -1
 
+# For easier reading when referenceing coordinates
 X = 0
 Y = 1
 
@@ -42,9 +26,39 @@ SW 	= 5
 W 	= 6
 NW 	= 7
 
+# Lists of directions for iteration
 DA = [N,E,S,W]
 DB = [N,NE,E,SE,S,SW,W,NW]
 DC = [(0,-1), (1,-1), (1,0), (1,1), (0,1), (-1,1), (-1,0), (-1,-1)]
+
+# Size of window
+SIZE = 1024
+# Size of squares
+SCALE = 16
+
+# Derived info about window and grid
+GSIZE = int(SIZE/SCALE)-1
+GCENTER = int(GSIZE/2)
+X_SCALE = SCALE
+Y_SCALE = SCALE
+
+# Display grid points
+GRID = 0
+# Width of grid points
+DASHWIDTH = 2
+
+
+
+
+
+OUTLINE = "black"
+FILL = "tan"
+
+# -1: No internal lines; 0: lines pointing in direction of orientation; 1: lines indicating connections
+LINES = -1
+# Include diagonal connections
+DIAGONALS = 0
+
 
 squaresList = []
 squaresCoords = [[0 for i in range(GSIZE)] for j in range(GSIZE)]
@@ -52,6 +66,8 @@ squaresCoords = [[0 for i in range(GSIZE)] for j in range(GSIZE)]
 MASTER = 0
 
 # Functions, Procedures, Classes & Methods -----------------------------------------------------
+
+# Find the shortest path between two squares
 def shortestPath(start, goal):
 	def reconstruct_path(navigated, current):
 		if current in navigated:
@@ -107,13 +123,19 @@ def shortestPath(start, goal):
 						openset.add(neighbor)
 	return 0
 
-def randSquare():
-	if squaresList:
-		return random.choice(squaresList)
-	return 0
+
+def colorPathDists():
+	maxDist = 0
+	for s in squaresList:
+		s.getConnected()
+		if s.distance > maxDist:
+			maxDist = s.distance
+	for s in squaresList:
+		r, g, b = colorsys.hls_to_rgb(s.distance / maxDist, .5, .5)
+		s.fill = '#' + '%02x%02x%02x' % (int(r*256%255), int(g*256%255), int(b*256%255))
+		s.draw()
 
 def drawPath(event = None, start = 0, goal = 0):
-	# print(squaresList)
 	for s in squaresList:
 		s.fill = FILL
 		s.draw()
@@ -122,18 +144,18 @@ def drawPath(event = None, start = 0, goal = 0):
 	if goal == 0:
 		goal = MASTER
 	p = shortestPath(start, goal)
+	l = len(p)
+	distance = 0
 	for s in p:
-		if s == start:
-			s.fill = "green"
-		elif s == goal:
-			s.fill = "red"
-		else:
-			s.fill = "blue"
+		r, g, b = colorsys.hls_to_rgb(distance / l, .5, .5)
+		# r, g, b = hex(int(256*r)), hex(int(256*g)), hex(int(256*b))
+		s.fill = '#' + '%02x%02x%02x' % (int(r*256%255), int(g*256%255), int(b*256%255))
+		# print(s.fill)
+		distance += 1
 		s.draw()
 
 
-
-
+# Pivot a random square in a random location
 def randPivot(event = None):
 	n = 0
 	shuffled = list(squaresList)
@@ -144,39 +166,50 @@ def randPivot(event = None):
 		if n:
 			return n
 								
-
-
+# Create a new square in a random location
+# 	Favors spread and long paths
 def randNewSquare(event = None):
 	opens = []
+	picks = {0:[], 1:[], 2:[], 3:[]}
+	shuffled = list(squaresList)
+	random.shuffle(shuffled)
+	for n in (0,1,2,3):
+		[picks[n].append(q) for q in shuffled if q.adjNum == n]
 	while(len(squaresList) < GSIZE*GSIZE):
 		for n in (0,1,2,3):
-			picks = []
-			shuffled = list(squaresList)
-			random.shuffle(shuffled)
-			[picks.append(q) for q in shuffled if q.adjNum == n]
-			if picks:
-				for s in picks:
+			if picks[n]:
+				for s in picks[n]:
 					opens = []
 					for d in DA:
 						if s.connections[d] == 0:
 							opens.append(d)
 					random.shuffle(opens)
 					for d in opens:
-						d = random.choice(opens)
 						m = Square(s, d)
 						if m:
 							return m
 
-
+# Create a new square in a random location
+def randNewSquareFast():
+	opens = []
+	while len(opens) == 0:
+		s = random.choice(squaresList)
+		[opens.append(d) for d in DA if s.connections[d] == 0]
+		if len(opens) != 0:
+			d = random.choice(opens)
+			n = Square(s, d)
+			if n:
+				return n
+			else:
+				opens.remove(d)
 			
 			
 
-
-	
-
+# Returns opposite direction of orientation
 def opposite(orientation):
 	return((orientation+4)%8)
 
+# Increments orientation in direction num times
 def clock(orientation, direction, num = 1):
 	while num > 0:
 		if direction == CW:
@@ -193,8 +226,6 @@ def clock(orientation, direction, num = 1):
 	return orientation
 
 
-def clicked(event):
-	print("test")
 
 class Square(object):
 	def __new__(cls, parent, parent_dir, master = 0, x = -1, y = -1, outline = OUTLINE, fill = FILL, temp = 0):
@@ -236,6 +267,7 @@ class Square(object):
 					squaresCoords[self.y][self.x] = self
 				self.getConnections()
 				self.connected = 1
+				self.distance = 0
 			else:
 				self.x = parent.x + DC[parent_dir][0]
 				self.y = parent.y + DC[parent_dir][1]
@@ -254,6 +286,7 @@ class Square(object):
 
 				self.draw()
 
+	# Find shortest path from self to goal square
 	def shortestPath(self, goal):
 		def reconstruct_path(navigated, current):
 			if current in navigated:
@@ -309,6 +342,7 @@ class Square(object):
 							openset.add(neighbor)
 		return 0
 
+	# Gets the direcetions from self which have squares
 	def getConnections(self):
 		self.connections = [0,0,0,0,0,0,0,0]
 		for d in DB:
@@ -325,12 +359,17 @@ class Square(object):
 			if s:
 				self.adjNum += 1
 
+	# Finds if self is connected to the master square
+	# 	Important for making sure squares stay connected in one group
+	# 	Also gets the distance from self to the master square
 	def getConnected(self):
 		self.connected = 0
-		if self.shortestPath(MASTER):
+		path = self.shortestPath(MASTER)
+		if path:
+			self.distance = len(path)
 			self.connected = 1
 			
-
+	# Pivot self in given direction
 	def pivot(self, direction):
 		self.getConnections()
 		for d in DA:
@@ -357,13 +396,16 @@ class Square(object):
 				else:
 					self.orientation = clock(self.orientation, -direction, 2)
 			else:
+				# Dont know if I want this
+				#	Allows connection to square in pivot path not connected to pivot square
 				if temp.connections[t]:
-					temp.delete()
-					self.orientation = clock(self.orientation, direction, 2)
-					if self.move(self.x + DC[t][X], self.y + DC[t][Y]):
-						return 1
-					else:
-						self.orientation = clock(self.orientation, -direction, 2)
+					pass
+					# temp.delete()
+					# self.orientation = clock(self.orientation, direction, 2)
+					# if self.move(self.x + DC[t][X], self.y + DC[t][Y]):
+					# 	return 1
+					# else:
+					# 	self.orientation = clock(self.orientation, -direction, 2)
 				else:
 					t = clock(pivot, -direction)
 					if not temp.connections[t]:
@@ -376,20 +418,17 @@ class Square(object):
 			temp.delete()
 		return 0
 
-		
-	def clicked(self, event):
-		self.pivot(CW)
-		# self.delete()
-		# self.erase()
-		# print(self.connections)
-		# self.move(0,0)
-
+	# Action for right click		
 	def rClick(self, event):
 		self.pivot(CW)
 
+	# Action for left click
 	def lClick(self, event):
 		self.pivot(CCW)
 
+	# Move self to (x,y)
+	# 	Does not allow any squares to become disconnected from group
+	# 	Does not allow square to move ontop of another
 	def move(self, x, y):
 		fail = 0
 		oldx = self.x
@@ -436,10 +475,11 @@ class Square(object):
 						s.draw()
 			return 1
 			
-
+	# Draw Path from self to master
 	def drawPath(self, event):
 		drawPath(event, start = self)
 
+	# Draw self
 	def draw(self):
 		self.erase()
 		x1 = ((self.x+1)*SCALE)
@@ -477,6 +517,7 @@ class Square(object):
 			canvas.tag_bind(self.dirLine, '<Button-2>', self.drawPath)
 		root.update()
 
+	# Erase self
 	def erase(self):
 		if(self.drawing):
 			canvas.delete(self.drawing)
@@ -489,6 +530,7 @@ class Square(object):
 			canvas.delete(self.dirLine)
 		root.update()
 
+	# Delete self
 	def delete(self):
 		self.erase()
 		conns = []
@@ -512,21 +554,21 @@ if __name__ == "__main__":
 
 	canvas = Canvas(root, width=SIZE+SCALE, height=SIZE+SCALE)
 	canvas.place(relx=.5, rely=.5, anchor=CENTER)
-	canvas.bind('<Button-2>', randPivot)
+	# canvas.bind('<Button-2>', randPivot)
 
 	# Draw Grid ---------------------------------------------------
 
 	if(GRID):
 		i=SCALE
 		while(i <= SIZE):
-			canvas.create_line(i, SCALE, i, SIZE+DASHWIDTH, dash=DASH, width=DASHWIDTH)
+			canvas.create_line(i, SCALE, i, SIZE+DASHWIDTH, dash=(DASHWIDTH, SCALE-DASHWIDTH), width=DASHWIDTH)
 			i += SCALE
 
 	# -------------------------------------------------------------
 
 
 
-	MASTER = Square(0, 0, master=1, x = 10, y = 10)
+	MASTER = Square(0, 0, master=1, x = GCENTER, y = GCENTER)
 	n = Square(MASTER, S)
 	m = Square(n, W)
 
@@ -536,10 +578,20 @@ if __name__ == "__main__":
 	# n = Square(MASTER, E)
 	# for i in range(5, GSIZE-3):
 	# 	n = Square(n, E)
-	
-	while len(squaresList) < 100:
+	while len(squaresList) < 300:
 		n = randNewSquare()
-	
+
+	# for i in range(0,100):
+	# 	MASTER = Square(0, 0, master=1, x = GCENTER, y = GCENTER)
+	# 	while len(squaresList) < 300:
+	# 		n = randNewSquare()
+		
+	# 	colorPathDists()
+	# 	while len(squaresList) > 0:
+	# 		for s in squaresList:
+	# 			s.delete()
+
+
 	# while(1):
 	# # # 	# drawPath()
 	# 	randPivot()
