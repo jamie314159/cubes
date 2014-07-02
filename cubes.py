@@ -48,9 +48,6 @@ GRID = 0
 DASHWIDTH = 2
 
 
-
-
-
 OUTLINE = "black"
 FILL = "tan"
 
@@ -69,59 +66,7 @@ MASTER = 0
 
 # Find the shortest path between two squares
 def shortestPath(start, goal):
-	def reconstruct_path(navigated, current):
-		if current in navigated:
-			p = reconstruct_path(navigated, navigated[current])
-			return p + [current]
-		else:
-			return [current]
-
-	def hc_est(start, goal):
-		a = abs(start.x - goal.x)
-		b = abs(start.y - goal.y)
-		return math.sqrt(pow(a,2)+pow(b,2))	
-
-	def lowestF(oset):
-		lowest = 0
-		for s in oset:
-			if lowest == 0:
-				lowest = s
-			elif f_score[s] < f_score[lowest]:
-				lowest = s
-		return lowest
-
-
-	closedset = set([])
-	openset = set([start])
-	navigated = {}
-
-	g_score = {}
-	f_score = {}
-
-	g_score[start] = 0
-	f_score[start] = g_score[start] + hc_est(start, goal)
-
-
-
-	while len(openset) != 0:
-		current = lowestF(openset)
-		
-		if current == goal:
-			# print(navigated)
-			return reconstruct_path(navigated, goal)
-		
-		openset.remove(current)
-		closedset.add(current)
-		for neighbor in current.adjacent:
-			if neighbor and neighbor not in closedset:
-				tent_g_score = g_score[current] + 1
-				if neighbor not in openset or tent_g_score < g_score[neighbor]:
-					navigated[neighbor] = current
-					g_score[neighbor] = tent_g_score
-					f_score[neighbor] = g_score[neighbor] + hc_est(neighbor, goal)
-					if neighbor not in openset:
-						openset.add(neighbor)
-	return 0
+	return start.shortestPath(goal)
 
 
 def colorPathDists():
@@ -263,8 +208,8 @@ class Square(object):
 					self.y = GCENTER
 				else:
 					self.y = y
-					squaresList.append(self)
-					squaresCoords[self.y][self.x] = self
+				squaresList.append(self)
+				squaresCoords[self.y][self.x] = self
 				self.getConnections()
 				self.connected = 1
 				self.distance = 0
@@ -568,7 +513,7 @@ if __name__ == "__main__":
 
 
 
-	MASTER = Square(0, 0, master=1, x = GCENTER, y = GCENTER)
+	MASTER = Square(0, 0, master=1)
 	n = Square(MASTER, S)
 	m = Square(n, W)
 
@@ -578,6 +523,7 @@ if __name__ == "__main__":
 	# n = Square(MASTER, E)
 	# for i in range(5, GSIZE-3):
 	# 	n = Square(n, E)
+
 	while len(squaresList) < 300:
 		n = randNewSquare()
 
