@@ -26,7 +26,7 @@ NW 	= 7
 # Lists of directions for iteration
 DA = [N,E,S,W]
 DB = [N,NE,E,SE,S,SW,W,NW]
-DC = [(0,-1), (1,-1), (1,0), (1,1), (0,1), (-1,1), (-1,0), (-1,-1)]
+DC = [(0,1), (1,1), (1,0), (1,-1), (0,-1), (-1,-1), (-1,0), (-1,1)]
 
 # Size of window
 SIZE = 512
@@ -40,7 +40,8 @@ X_SCALE = SCALE
 Y_SCALE = SCALE
 
 squaresList = []
-squaresCoords = [[0 for i in range(GSIZE)] for j in range(GSIZE)]
+# squaresCoords = [[0 for i in range(GSIZE)] for j in range(GSIZE)]
+squaresCoords = {}
 
 MASTER = 0
 
@@ -124,95 +125,65 @@ def clock(orientation, direction, num = 1):
 
 
 class Square(object):
-	def __new__(cls, parent = 0, parent_dir = 0, master = 0, x = -1, y = -1):
+	def __new__(cls, parent = 0, parentDir = 0, master = 0, x = -1, y = -1):
 		if(master):
 			return object.__new__(cls)
 		elif(parent):
-			x = parent.x + DC[parent_dir][0]
-			y = parent.y + DC[parent_dir][1]
-			if(x >= 0 and y >= 0 and x < GSIZE and y < GSIZE):
-				if squaresCoords[x][y] == 0:
-					if(master or parent.connections[parent_dir] == 0):
-						return object.__new__(cls)
+			x = parent.x + DC[parentDir][X]
+			y = parent.y + DC[parentDir][Y]
+			if (x, y) not in squaresCoords.keys():
+				if(master or parentDir not in parent.connections.keys()):
+					return object.__new__(cls)
 					
 
 
-	def __init__(self, parent = 0, parent_dir = 0, master = 0, x = -1, y = -1):
+	def __init__(self, parent = 0, parentDir = 0, master = 0, x = -1, y = -1):
 			self.master = master
-			self.connections = [0,0,0,0,0,0,0,0]
+			self.connections = {}
 			self.adjacent = [0,0,0,0,0,0,0,0]
 			self.connLines = [0,0,0,0,0,0,0,0]
 			self.orientation = N
+			self.adjNum = 0
 
 			if self.master:
 				global MASTER 
 				MASTER = self
-				if(x == -1):
-					self.x = GCENTER
-				else:
-					self.x = x					
-
-				if(y == -1):
-					self.y = GCENTER
-				else:
-					self.y = y
+				self.x = 0
+				self.y = 0
 				squaresList.append(self)
-				squaresCoords[self.x][self.y] = self
+				# squaresCoords[self.x][self.y] = self
+				squaresCoords[(self.x, self.y)] = self
 				self.getConnections()
 				self.getConnected()
 			else:
-				self.x = parent.x + DC[parent_dir][X]
-				self.y = parent.y + DC[parent_dir][Y]
-				self.connections[parent_dir] = parent
-				parent.connections[opposite(parent_dir)] = self
+				self.x = parent.x + DC[parentDir][X]
+				self.y = parent.y + DC[parentDir][Y]
+
+				self.connections[opposite(parentDir)] = parent
+				parent.connections[parentDir] = self
+
 				self.getConnections()
 				self.getConnected()
-				squaresCoords[self.x][self.y] = self
+
+				# squaresCoords[self.x][self.y] = self
+				squaresCoords[(self.x, self.y)] = self
 				squaresList.append(self)
-				for s in self.connections:
-					if s:
-						s.getConnections()
-				for y in squaresCoords:
-					print(y)
-				print()
+				for s in self.connections.keys():
+					self.connections[s].getConnections()
 			
 	def getConnections(self):
-		conns = set([])
-		hist = set([])
-		self.getConnectionsRecursive(self, self.x, self.y, conns, hist)
-		for s in conns:
-			for d in DB:
-				if s.x == self.x-DC[d][X] and s.y == self.y-DC[d][Y]:
-					self.connections[d] = s
-
-	def getConnectionsRecursive(self, check, currX, currY, conns, hist):
-		for d in DA:
-			if self.connections[d]:
-				if self.connections[d] not in hist:
-					current = self.connections[d]
-					hist.add(current)
-					currX += DC[d][X]
-					currY += DC[d][Y]
-					# print(currX, check.x, ' ' ,currY ,check.y)
-					if abs(currX-check.x) <= 1 and abs(currY-check.y) <= 1:
-						conns.add(current)
-					current.getConnectionsRecursive(check, currX, currY, conns, hist)
+		self.adjNum = 0
+		for d in DB:
+			c = (self.x+DC[d][X], self.y+DC[d][Y])
+			if c in squaresCoords.keys():
+				self.connections[d] = squaresCoords[c]
+				squaresCoords[c].connections[opposite(d)] = self
+				if d in DA:
+					self.adjNum += 1
 
 
 
-		# for d in DB:
-		# 	adjCoord = (self.x+DC[d][X], self.y+DC[d][Y])
-		# 	if(adjCoord[X] >= 0 and adjCoord[Y] >= 0 and adjCoord[X] < GSIZE and adjCoord[Y] < GSIZE):
-		# 		adjSquare = squaresCoords[adjCoord[X]][adjCoord[Y]]
-		# 		if adjSquare:
-		# 			self.connections[d] = adjSquare
-		# for i in range(0, 7, 2):
-		# 	self.adjacent[i] = self.connections[i]
-
-		# self.adjNum = 0
-		# for s in self.adjacent:
-		# 	if s:
-		# 		self.adjNum += 1
+	
 
 	# Gets the direcetions from self which have squares
 	# def getConnections(self):

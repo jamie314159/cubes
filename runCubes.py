@@ -1,3 +1,5 @@
+#!/usr/local/bin/ipython3
+
 from tkinter import *
 from tkinter import ttk
 import colorsys
@@ -15,7 +17,7 @@ GCENTER = int(GSIZE/2)
 X_SCALE = SCALE
 Y_SCALE = SCALE
 
-DRAW = 0
+DRAW = 1
 # Display grid points
 GRID = 1
 # Width of grid points
@@ -182,54 +184,34 @@ def randNewSquare(event = None):
 							return m
 
 def drawSquare(square):
-	x1 = ((square.x+1)*SCALE)
-	y1 = ((square.y+1)*SCALE)
-	x2 = ((square.x+1)*SCALE)+SCALE
-	y2 = ((square.y+1)*SCALE)+SCALE
+	x1 = ((square.x+GCENTER+1)*SCALE)
+	y1 = ((-square.y+GCENTER+1)*SCALE)
+	x2 = ((square.x+GCENTER+1)*SCALE)+SCALE
+	y2 = ((-square.y+GCENTER+1)*SCALE)+SCALE
 	canvas.create_rectangle(x1, y1, x2, y2,  fill = FILL, outline = OUTLINE, width=2)
-	for c in DA:
-		if square.connections[c] != 0:
-			x1 = SCALE*(square.x+1.5)
-			y1 = SCALE*(square.y+1.5)
-			x2 = SCALE*((square.x+1.5)+(.5*DC[c][0]))
-			y2 = SCALE*((square.y+1.5)+(.5*DC[c][1]))
+	for c in square.connections.keys():
+			x1 = SCALE*(square.x+GCENTER+1.5)
+			y1 = SCALE*(-square.y+GCENTER+1.5)
+			x2 = SCALE*((square.x+GCENTER+1.5)+(.5*DC[c][0]))
+			y2 = SCALE*((-square.y+GCENTER+1.5)+(.5*DC[c][1]))
 			canvas.create_line(x1, y1, x2, y2)
 	root.update()
 
-# Create a new square in a random location
-def randNewSquareFast():
-	opens = []
-	n = 0
-	while not n:
-		shuffled = list(squares)
-		random.shuffle(shuffled)
-		for s in shuffled:
-			opens = []
-			# s = random.choice(squares)
-			# print(s.x, s.y)
-			[opens.append(d) for d in DA if s.connections[d] == 0]
-			while len(opens) > 0:
-				d = random.choice(opens)
-				n = cubes.Square(s, d)
-				if n:
-					break
-				else:
-					opens.remove(d)
-	return n
 
+		
 
 def printSquares():
-	for y in range(0,GSIZE):
-		for x in range(0,GSIZE):
-			if cubes.squaresCoords[x][y] == 0:
+	for y in range(-GCENTER,GCENTER):
+		for x in range(-GCENTER,GCENTER):
+			if (x, y) not in cubes.squaresCoords.keys():
 				print('-', end = ' ')
 			else:
-				s = cubes.squaresCoords[x][y]
+				s = cubes.squaresCoords[(x, y)]
 				n = 0
 				for c in DA:
-					if s.connections[c]:
+					if c in s.connections.keys():
 						n += 1
-				if cubes.squaresCoords[x][y].master:
+				if cubes.squaresCoords[(x, y)].master:
 					print(n, end = '!')
 				else:
 					print(n, end = ' ')
@@ -245,6 +227,33 @@ def printSquares():
 		print('')
 	print('')
 
+# Create a new square in a random location
+def randNewSquareFast():
+	shuffledSquares = list(squares)
+	random.shuffle(shuffledSquares)
+	for s in shuffledSquares:
+		if s:
+			if s.adjNum < 4:
+				parent = s
+				break
+
+	shuffledDirs = list(DA)
+	random.shuffle(shuffledDirs)
+	
+	for d in shuffledDirs:
+		if d not in parent.connections.keys():
+			parentDir = d
+			break
+
+	return cubes.Square(parent, parentDir)
+
+def lClick(event):
+	new = randNewSquareFast()
+	squares.append(new)
+	drawSquare(new)
+	for s in new.connections.values():
+		drawSquare(s)
+
 # Initialize tkinter ------------------------------------------
 
 if DRAW:
@@ -254,7 +263,7 @@ if DRAW:
 
 	canvas = Canvas(root, width=SIZE+SCALE, height=SIZE+SCALE)
 	canvas.place(relx=.5, rely=.5, anchor=CENTER)
-	# canvas.bind('<Button-2>', randPivot)
+	canvas.bind('<Button-1>', lClick)
 
 	# Draw Grid ---------------------------------------------------
 
@@ -269,20 +278,29 @@ if DRAW:
 squares = []
 m = cubes.Square(master = 1)
 squares.append(m)
+drawSquare(m)
+
 # squares.append(cubes.Square(m, N))
 # squares.append(cubes.Square(m, S))
 # squares.append(cubes.Square(m, E))
 # squares.append(cubes.Square(m, W))
 
+
+
+while len(squares) < 50:
+	new = randNewSquareFast()
+	squares.append(new)
+	# drawSquare(new)
+
 if DRAW:
 	for s in squares:
 		drawSquare(s)
+else:
+	printSquares()
 
-while len(squares) < 10:
-	new = randNewSquareFast()
-	print('w',new)
-	squares.append(new)
-printSquares()
+# for s in squares:
+# 	print(s.x, s.y)
+
 
 if DRAW:
 	root.mainloop()
