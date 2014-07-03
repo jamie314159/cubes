@@ -163,29 +163,73 @@ class Square(object):
 			else:
 				self.x = parent.x + DC[parent_dir][X]
 				self.y = parent.y + DC[parent_dir][Y]
+				self.connections[parent_dir] = parent
+				parent.connections[opposite(parent_dir)] = self
 				self.getConnections()
 				self.getConnected()
 				squaresCoords[self.x][self.y] = self
 				squaresList.append(self)
+				for s in self.connections:
+					if s:
+						s.getConnections()
+				for y in squaresCoords:
+					print(y)
+				print()
 			
-			
+	def getConnections(self):
+		conns = set([])
+		hist = set([])
+		self.getConnectionsRecursive(self, self.x, self.y, conns, hist)
+		for s in conns:
+			for d in DB:
+				if s.x == self.x-DC[d][X] and s.y == self.y-DC[d][Y]:
+					self.connections[d] = s
+
+	def getConnectionsRecursive(self, check, currX, currY, conns, hist):
+		for d in DA:
+			if self.connections[d]:
+				if self.connections[d] not in hist:
+					current = self.connections[d]
+					hist.add(current)
+					currX += DC[d][X]
+					currY += DC[d][Y]
+					# print(currX, check.x, ' ' ,currY ,check.y)
+					if abs(currX-check.x) <= 1 and abs(currY-check.y) <= 1:
+						conns.add(current)
+					current.getConnectionsRecursive(check, currX, currY, conns, hist)
+
+
+
+		# for d in DB:
+		# 	adjCoord = (self.x+DC[d][X], self.y+DC[d][Y])
+		# 	if(adjCoord[X] >= 0 and adjCoord[Y] >= 0 and adjCoord[X] < GSIZE and adjCoord[Y] < GSIZE):
+		# 		adjSquare = squaresCoords[adjCoord[X]][adjCoord[Y]]
+		# 		if adjSquare:
+		# 			self.connections[d] = adjSquare
+		# for i in range(0, 7, 2):
+		# 	self.adjacent[i] = self.connections[i]
+
+		# self.adjNum = 0
+		# for s in self.adjacent:
+		# 	if s:
+		# 		self.adjNum += 1
 
 	# Gets the direcetions from self which have squares
-	def getConnections(self):
-		self.connections = [0,0,0,0,0,0,0,0]
-		for d in DB:
-			adjCoord = (self.x+DC[d][X], self.y+DC[d][Y])
-			if(adjCoord[X] >= 0 and adjCoord[Y] >= 0 and adjCoord[X] < GSIZE and adjCoord[Y] < GSIZE):
-				adjSquare = squaresCoords[adjCoord[X]][adjCoord[Y]]
-				if adjSquare:
-					self.connections[d] = adjSquare
-		for i in range(0, 7, 2):
-			self.adjacent[i] = self.connections[i]
+	# def getConnections(self):
+	# 	self.connections = [0,0,0,0,0,0,0,0]
+	# 	for d in DB:
+	# 		adjCoord = (self.x+DC[d][X], self.y+DC[d][Y])
+	# 		if(adjCoord[X] >= 0 and adjCoord[Y] >= 0 and adjCoord[X] < GSIZE and adjCoord[Y] < GSIZE):
+	# 			adjSquare = squaresCoords[adjCoord[X]][adjCoord[Y]]
+	# 			if adjSquare:
+	# 				self.connections[d] = adjSquare
+	# 	for i in range(0, 7, 2):
+	# 		self.adjacent[i] = self.connections[i]
 
-		self.adjNum = 0
-		for s in self.adjacent:
-			if s:
-				self.adjNum += 1
+	# 	self.adjNum = 0
+	# 	for s in self.adjacent:
+	# 		if s:
+	# 			self.adjNum += 1
 
 	# Finds if self is connected to the master square
 	# 	Important for making sure squares stay connected in one group
