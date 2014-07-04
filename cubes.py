@@ -57,8 +57,8 @@ def shortestPath(start, goal):
 			return [current]
 
 	def hc_est(start, goal):
-		a = abs(start.x - goal.x)
-		b = abs(start.y - goal.y)
+		a = abs(start.coord[X] - goal.coord[X])
+		b = abs(start.coord[Y] - goal.coord[Y])
 		return a+b
 
 	def lowestF(oset):
@@ -91,15 +91,17 @@ def shortestPath(start, goal):
 		
 		openset.remove(current)
 		closedset.add(current)
-		for neighbor in current.adjacent:
-			if neighbor and neighbor not in closedset:
-				tent_g_score = g_score[current] + 1
-				if neighbor not in openset or tent_g_score < g_score[neighbor]:
-					navigated[neighbor] = current
-					g_score[neighbor] = tent_g_score
-					f_score[neighbor] = g_score[neighbor] + hc_est(neighbor, goal)
-					if neighbor not in openset:
-						openset.add(neighbor)
+		for d in DA:
+			if d in current.connections.keys():
+				neighbor = current.connections[d]
+				if neighbor not in closedset:
+					tent_g_score = g_score[current] + 1
+					if neighbor not in openset or tent_g_score < g_score[neighbor]:
+						navigated[neighbor] = current
+						g_score[neighbor] = tent_g_score
+						f_score[neighbor] = g_score[neighbor] + hc_est(neighbor, goal)
+						if neighbor not in openset:
+							openset.add(neighbor)
 	return 0
 
 # Returns opposite direction of orientation
@@ -129,9 +131,10 @@ class Square(object):
 		if(master):
 			return object.__new__(cls)
 		elif(parent):
-			x = parent.x + DC[parentDir][X]
-			y = parent.y + DC[parentDir][Y]
-			if (x, y) not in squaresCoords.keys():
+			coord = (parent.coord[X] + DC[parentDir][X], parent.coord[Y] + DC[parentDir][Y])
+			# x = parent.x + DC[parentDir][X]
+			# y = parent.y + DC[parentDir][Y]
+			if coord not in squaresCoords.keys():
 				if(master or parentDir not in parent.connections.keys()):
 					return object.__new__(cls)
 					
@@ -140,24 +143,23 @@ class Square(object):
 	def __init__(self, parent = 0, parentDir = 0, master = 0, x = -1, y = -1):
 			self.master = master
 			self.connections = {}
-			self.adjacent = [0,0,0,0,0,0,0,0]
-			self.connLines = [0,0,0,0,0,0,0,0]
 			self.orientation = N
 			self.adjNum = 0
 
 			if self.master:
 				global MASTER 
 				MASTER = self
-				self.x = 0
-				self.y = 0
+				self.coord = (0, 0)
+				# self.x = 0
+				# self.y = 0
 				squaresList.append(self)
-				# squaresCoords[self.x][self.y] = self
-				squaresCoords[(self.x, self.y)] = self
+				squaresCoords[self.coord] = self
 				self.getConnections()
 				self.getConnected()
 			else:
-				self.x = parent.x + DC[parentDir][X]
-				self.y = parent.y + DC[parentDir][Y]
+				self.coord = (parent.coord[X] + DC[parentDir][X], parent.coord[Y] + DC[parentDir][Y])
+				# self.x = parent.x + DC[parentDir][X]
+				# self.y = parent.y + DC[parentDir][Y]
 
 				self.connections[opposite(parentDir)] = parent
 				parent.connections[parentDir] = self
@@ -165,16 +167,17 @@ class Square(object):
 				self.getConnections()
 				self.getConnected()
 
-				# squaresCoords[self.x][self.y] = self
-				squaresCoords[(self.x, self.y)] = self
+				squaresCoords[self.coord] = self
 				squaresList.append(self)
 				for s in self.connections.keys():
 					self.connections[s].getConnections()
 			
+	# Gets the direcetions from self which have squares
 	def getConnections(self):
+		self.connections = {}
 		self.adjNum = 0
 		for d in DB:
-			c = (self.x+DC[d][X], self.y+DC[d][Y])
+			c = (self.coord[X]+DC[d][X], self.coord[Y]+DC[d][Y])
 			if c in squaresCoords.keys():
 				self.connections[d] = squaresCoords[c]
 				squaresCoords[c].connections[opposite(d)] = self
@@ -184,23 +187,6 @@ class Square(object):
 
 
 	
-
-	# Gets the direcetions from self which have squares
-	# def getConnections(self):
-	# 	self.connections = [0,0,0,0,0,0,0,0]
-	# 	for d in DB:
-	# 		adjCoord = (self.x+DC[d][X], self.y+DC[d][Y])
-	# 		if(adjCoord[X] >= 0 and adjCoord[Y] >= 0 and adjCoord[X] < GSIZE and adjCoord[Y] < GSIZE):
-	# 			adjSquare = squaresCoords[adjCoord[X]][adjCoord[Y]]
-	# 			if adjSquare:
-	# 				self.connections[d] = adjSquare
-	# 	for i in range(0, 7, 2):
-	# 		self.adjacent[i] = self.connections[i]
-
-	# 	self.adjNum = 0
-	# 	for s in self.adjacent:
-	# 		if s:
-	# 			self.adjNum += 1
 
 	# Finds if self is connected to the master square
 	# 	Important for making sure squares stay connected in one group
@@ -218,46 +204,46 @@ class Square(object):
 				self.connected = 0
 
 			
+	def rClick(self, event):
+		self.pivot(CW)
+
 	# Pivot self in given direction
 	def pivot(self, direction):
 		self.getConnections()
 		for d in DA:
-			if self.connections[d]:
+			if d in self.connections.keys():
 				pivot = d
 
 		t = clock(pivot, -direction, 2)
-		if self.connections[t]:
+		if t in self.connections.keys():
 			pivot = t
 			t = clock(pivot, -direction, 2)
 
-		# if self.connections[opposite(pivot)] or self.connections[clock(opposite(pivot), direction)]:
-		# 	return 0
-		# else:
 		temp = Square(self, t)
-		
 
 		if temp:
-			if temp.connections[pivot]:
-				temp.delete()
-				self.orientation = clock(self.orientation, direction, 2)
-				if self.move(self.x + DC[t][X], self.y + DC[t][Y]):
-					return 1
-				else:
-					self.orientation = clock(self.orientation, -direction, 2)
-			else:
-				if temp.connections[t]:
+			if pivot in temp.connections.keys():
+				if opposite(pivot) not in temp.connections.keys():
 					temp.delete()
 					self.orientation = clock(self.orientation, direction, 2)
-					if self.move(self.x + DC[t][X], self.y + DC[t][Y]):
+					if self.move((self.coord[X] + DC[t][X], self.coord[Y] + DC[t][Y])):
+						return 1
+					else:
+						self.orientation = clock(self.orientation, -direction, 2)
+			else:
+				if t in temp.connections.keys():
+					temp.delete()
+					self.orientation = clock(self.orientation, direction, 2)
+					if self.move((self.coord[X] + DC[t][X], self.coord[Y] + DC[t][Y])):
 						return 1
 					else:
 						self.orientation = clock(self.orientation, -direction, 2)
 				else:
 					t = clock(pivot, -direction)
-					if not temp.connections[t]:
+					if t not in temp.connections.keys():
 						temp.delete()
 						self.orientation = clock(self.orientation, direction, 4)
-						if self.move(self.x + DC[t][X], self.y + DC[t][Y]):
+						if self.move((self.coord[X] + DC[t][X], self.coord[Y] + DC[t][Y])):
 							return 1
 						else:
 							self.orientation = clock(self.orientation, -direction, 4)
@@ -268,18 +254,15 @@ class Square(object):
 	# Move self to (x,y)
 	# 	Does not allow any squares to become disconnected from group
 	# 	Does not allow square to move ontop of another
-	def move(self, x, y):
+	def move(self, newCoord):
 		fail = 0
-		oldx = self.x
-		oldy = self.y
+		oldCoord = self.coord
 		conns = []
 
-		if squaresCoords[x][y] == 0:
-			
-			squaresCoords[self.x][self.y] = 0
-			self.x = x
-			self.y = y
-			squaresCoords[self.x][self.y] = self
+		if newCoord not in squaresCoords.keys():
+			del squaresCoords[self.coord]
+			self.coord = newCoord
+			squaresCoords[self.coord] = self
 
 			# Gets all potentialy affected squares, hopefully
 			[conns.append(s) for s in squaresList if self in s.path]
@@ -294,10 +277,9 @@ class Square(object):
 
 
 			if fail:
-				squaresCoords[self.x][self.y] = 0
-				self.x = oldx
-				self.y = oldy
-				squaresCoords[self.x][self.y] = self
+				del squaresCoords[self.coord]
+				self.coord = oldCoord
+				squaresCoords[self.coord] = self
 				for s in squaresList:
 					if s:
 						self.getConnections()
@@ -312,14 +294,12 @@ class Square(object):
 
 	# Delete self
 	def delete(self):
-		conns = []
-		[conns.append(s) for s in self.connections if s]
 		squaresList.remove(self)
-		squaresCoords[self.x][self.y] = 0
+		del squaresCoords[self.coord]
+		conns = list(self.connections.values())
 		self = 0
 		for s in conns:
 			s.getConnections()
-
 
 
 	

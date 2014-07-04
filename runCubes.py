@@ -23,6 +23,10 @@ GRID = 1
 # Width of grid points
 DASHWIDTH = 2
 
+CW = 1
+CCW = -1
+X = 0
+Y = 1
 # Make this a dictionary
 N 	= 0
 NE 	= 1
@@ -46,6 +50,9 @@ LINES = -1
 # Include diagonal connections
 DIAGONALS = 0
 
+drawings = {}
+changed = []
+squares = []
 # # Draw self
 # def draw(self):
 # 	self.erase()
@@ -184,24 +191,30 @@ def randNewSquare(event = None):
 							return m
 
 def drawSquare(square):
-	x1 = ((square.x+GCENTER+1)*SCALE)
-	y1 = ((-square.y+GCENTER+1)*SCALE)
-	x2 = ((square.x+GCENTER+1)*SCALE)+SCALE
-	y2 = ((-square.y+GCENTER+1)*SCALE)+SCALE
-	canvas.create_rectangle(x1, y1, x2, y2,  fill = FILL, outline = OUTLINE, width=2)
-	for c in square.connections.keys():
-			x1 = SCALE*(square.x+GCENTER+1.5)
-			y1 = SCALE*(-square.y+GCENTER+1.5)
-			x2 = SCALE*((square.x+GCENTER+1.5)+(.5*DC[c][0]))
-			y2 = SCALE*((-square.y+GCENTER+1.5)+(.5*DC[c][1]))
-			canvas.create_line(x1, y1, x2, y2)
+	drawing = []
+	x1 = ((square.coord[X]+GCENTER+1)*SCALE)
+	y1 = ((-square.coord[Y]+GCENTER+1)*SCALE)
+	x2 = ((square.coord[X]+GCENTER+1)*SCALE)+SCALE
+	y2 = ((-square.coord[Y]+GCENTER+1)*SCALE)+SCALE
+	drawing.append(canvas.create_rectangle(x1, y1, x2, y2,  fill = FILL, outline = OUTLINE, width=2))
+	for d in DA:
+		if d in square.connections.keys():
+			x1 = SCALE*(square.coord[X]+GCENTER+1.5)
+			y1 = SCALE*(-square.coord[Y]+GCENTER+1.5)
+			x2 = SCALE*((square.coord[X]+GCENTER+1.5)+(.5*DC[d][0]))
+			y2 = SCALE*((-square.coord[Y]+GCENTER+1.5)+(.5*DC[d][1]))
+			drawing.append(canvas.create_line(x1, y1, x2, y2))
+	for d in drawing:
+		canvas.tag_bind(d, '<Button-3>', lambda event, arg=square: rClick(event, arg))
+		canvas.tag_bind(d, '<Button-1>', lambda event, arg=square: lClick(event, arg))
+	drawings[square] = drawing
 	root.update()
 
 
 		
 
 def printSquares():
-	for y in range(-GCENTER,GCENTER):
+	for y in range(GCENTER,-GCENTER, -1):
 		for x in range(-GCENTER,GCENTER):
 			if (x, y) not in cubes.squaresCoords.keys():
 				print('-', end = ' ')
@@ -247,12 +260,28 @@ def randNewSquareFast():
 
 	return cubes.Square(parent, parentDir)
 
-def lClick(event):
+def mClick(event):
 	new = randNewSquareFast()
 	squares.append(new)
 	drawSquare(new)
 	for s in new.connections.values():
 		drawSquare(s)
+
+def lClick(event, square):
+	square.pivot(CCW)
+	redraw()
+
+def rClick(event, square):
+	square.pivot(CW)
+	redraw()
+
+
+def redraw():
+	canvas.delete("all")
+	for s in squares:
+		drawSquare(s)
+
+
 
 # Initialize tkinter ------------------------------------------
 
@@ -263,7 +292,7 @@ if DRAW:
 
 	canvas = Canvas(root, width=SIZE+SCALE, height=SIZE+SCALE)
 	canvas.place(relx=.5, rely=.5, anchor=CENTER)
-	canvas.bind('<Button-1>', lClick)
+	canvas.bind('<Button-2>', mClick)
 
 	# Draw Grid ---------------------------------------------------
 
@@ -275,32 +304,28 @@ if DRAW:
 
 # -------------------------------------------------------------
 
-squares = []
+
 m = cubes.Square(master = 1)
 squares.append(m)
-drawSquare(m)
 
-# squares.append(cubes.Square(m, N))
-# squares.append(cubes.Square(m, S))
-# squares.append(cubes.Square(m, E))
-# squares.append(cubes.Square(m, W))
+e = cubes.Square(m, E)
+squares.append(e)
+
+n = cubes.Square(m, N)
+squares.append(n)
 
 
+# n.delete()
+
+# drawSquare(m)
 
 while len(squares) < 50:
 	new = randNewSquareFast()
 	squares.append(new)
-	# drawSquare(new)
 
-if DRAW:
+
+
+if DRAW:	
 	for s in squares:
 		drawSquare(s)
-else:
-	printSquares()
-
-# for s in squares:
-# 	print(s.x, s.y)
-
-
-if DRAW:
 	root.mainloop()
