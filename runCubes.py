@@ -43,12 +43,12 @@ DB = [N,NE,E,SE,S,SW,W,NW]
 DC = [(0,-1), (1,-1), (1,0), (1,1), (0,1), (-1,1), (-1,0), (-1,-1)]
 
 OUTLINE = "black"
-FILL = "tan"
+FILL = "grey"
 
 # -1: No internal lines; 0: lines pointing in direction of orientation; 1: lines indicating connections
-LINES = -1
+LINES = 1
 # Include diagonal connections
-DIAGONALS = 0
+DIAGONALS = 1
 
 drawings = {}
 changed = []
@@ -152,21 +152,6 @@ squares = []
 # 			return n
 								
 
-def randLine():
-	m = randNewSquareFast()
-	s = 0
-	for c in m.connections:
-		if c != 0:
-			s += 1
-	while s > 2:
-		m.delete()
-		m = randNewSquareFast()
-		s = 0
-		for c in m.connections:
-			if c != 0:
-				s += 1
-	return m
-
 # Create a new square in a random location
 # 	Favors spread and long paths
 def randNewSquare(event = None):
@@ -196,14 +181,19 @@ def drawSquare(square):
 	y1 = ((-square.coord[Y]+GCENTER+1)*SCALE)
 	x2 = ((square.coord[X]+GCENTER+1)*SCALE)+SCALE
 	y2 = ((-square.coord[Y]+GCENTER+1)*SCALE)+SCALE
-	drawing.append(canvas.create_rectangle(x1, y1, x2, y2,  fill = FILL, outline = OUTLINE, width=2))
-	for d in DA:
-		if d in square.connections.keys():
-			x1 = SCALE*(square.coord[X]+GCENTER+1.5)
-			y1 = SCALE*(-square.coord[Y]+GCENTER+1.5)
-			x2 = SCALE*((square.coord[X]+GCENTER+1.5)+(.5*DC[d][0]))
-			y2 = SCALE*((-square.coord[Y]+GCENTER+1.5)+(.5*DC[d][1]))
-			drawing.append(canvas.create_line(x1, y1, x2, y2))
+	drawing.append(canvas.create_rectangle(x1, y1, x2, y2,  fill = square.fill, outline = OUTLINE, width=2))
+	if LINES:
+		if DIAGONALS:
+			a = DB
+		else:
+			a = DA
+		for d in a:
+			if d in square.connections.keys():
+				x1 = SCALE*(square.coord[X]+GCENTER+1.5)
+				y1 = SCALE*(-square.coord[Y]+GCENTER+1.5)
+				x2 = SCALE*((square.coord[X]+GCENTER+1.5)+(.5*DC[d][0]))
+				y2 = SCALE*((-square.coord[Y]+GCENTER+1.5)+(.5*DC[d][1]))
+				drawing.append(canvas.create_line(x1, y1, x2, y2))
 	for d in drawing:
 		canvas.tag_bind(d, '<Button-3>', lambda event, arg=square: rClick(event, arg))
 		canvas.tag_bind(d, '<Button-1>', lambda event, arg=square: lClick(event, arg))
@@ -319,7 +309,7 @@ squares.append(n)
 
 # drawSquare(m)
 
-while len(squares) < 50:
+while len(squares) < 20:
 	new = randNewSquareFast()
 	squares.append(new)
 

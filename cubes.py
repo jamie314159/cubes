@@ -1,7 +1,4 @@
 #!/bin/ipython3
-import random
-import math
-import time
 
 # Constants ---------------------------------------------------
 
@@ -124,6 +121,9 @@ def clock(orientation, direction, num = 1):
 		num -= 1
 	return orientation
 
+def coordAddDir(a,b):
+	return (a[X] + DC[b][X], a[Y] + DC[b][Y])
+
 
 
 class Square(object):
@@ -131,9 +131,7 @@ class Square(object):
 		if(master):
 			return object.__new__(cls)
 		elif(parent):
-			coord = (parent.coord[X] + DC[parentDir][X], parent.coord[Y] + DC[parentDir][Y])
-			# x = parent.x + DC[parentDir][X]
-			# y = parent.y + DC[parentDir][Y]
+			coord = coordAddDir(parent.coord, parentDir)#(parent.coord[X] + DC[parentDir][X], parent.coord[Y] + DC[parentDir][Y])
 			if coord not in squaresCoords.keys():
 				if(master or parentDir not in parent.connections.keys()):
 					return object.__new__(cls)
@@ -141,6 +139,7 @@ class Square(object):
 
 
 	def __init__(self, parent = 0, parentDir = 0, master = 0, x = -1, y = -1):
+			self.fill = "grey"
 			self.master = master
 			self.connections = {}
 			self.orientation = N
@@ -150,8 +149,6 @@ class Square(object):
 				global MASTER 
 				MASTER = self
 				self.coord = (0, 0)
-				# self.x = 0
-				# self.y = 0
 				squaresList.append(self)
 				squaresCoords[self.coord] = self
 				self.getConnections()
@@ -187,7 +184,6 @@ class Square(object):
 
 
 	
-
 	# Finds if self is connected to the master square
 	# 	Important for making sure squares stay connected in one group
 	def getConnected(self):
@@ -204,9 +200,6 @@ class Square(object):
 				self.connected = 0
 
 			
-	def rClick(self, event):
-		self.pivot(CW)
-
 	# Pivot self in given direction
 	def pivot(self, direction):
 		self.getConnections()
@@ -214,41 +207,35 @@ class Square(object):
 			if d in self.connections.keys():
 				pivot = d
 
-		t = clock(pivot, -direction, 2)
-		if t in self.connections.keys():
-			pivot = t
+		if opposite(pivot) not in self.connections.keys():
 			t = clock(pivot, -direction, 2)
+			if t in self.connections.keys():
+				pivot = t
+				t = clock(pivot, -direction, 2)
 
-		temp = Square(self, t)
+			temp = coordAddDir(self.coord, t)
 
-		if temp:
-			if pivot in temp.connections.keys():
-				if opposite(pivot) not in temp.connections.keys():
-					temp.delete()
-					self.orientation = clock(self.orientation, direction, 2)
-					if self.move((self.coord[X] + DC[t][X], self.coord[Y] + DC[t][Y])):
-						return 1
-					else:
-						self.orientation = clock(self.orientation, -direction, 2)
-			else:
-				if t in temp.connections.keys():
-					temp.delete()
-					self.orientation = clock(self.orientation, direction, 2)
-					if self.move((self.coord[X] + DC[t][X], self.coord[Y] + DC[t][Y])):
-						return 1
-					else:
-						self.orientation = clock(self.orientation, -direction, 2)
-				else:
-					t = clock(pivot, -direction)
-					if t not in temp.connections.keys():
-						temp.delete()
-						self.orientation = clock(self.orientation, direction, 4)
-						if self.move((self.coord[X] + DC[t][X], self.coord[Y] + DC[t][Y])):
+			if temp not in squaresCoords:
+				if coordAddDir(temp, pivot) in squaresCoords:
+					if coordAddDir(temp, opposite(pivot)) not in squaresCoords:
+						if self.move(coordAddDir(self.coord, t)):
+							self.orientation = clock(self.orientation, direction, 2)
 							return 1
-						else:
-							self.orientation = clock(self.orientation, -direction, 4)
-			temp.delete()
+				else:
+					if coordAddDir(temp, t) in squaresCoords:
+						if self.move(coordAddDir(self.coord, t)):
+							self.orientation = clock(self.orientation, direction, 2)
+							return 1
+					else:
+						t = clock(pivot, -direction)
+						if coordAddDir(temp, t) not in squaresCoords:
+							if self.move(coordAddDir(self.coord, t)):
+								self.orientation = clock(self.orientation, direction, 4)
+								return 1
 		return 0
+
+
+	
 
 	# -- Make this private -- #
 	# Move self to (x,y)
@@ -262,25 +249,21 @@ class Square(object):
 		if newCoord not in squaresCoords.keys():
 			del squaresCoords[self.coord]
 			self.coord = newCoord
-			squaresCoords[self.coord] = self
-
-			# Gets all potentialy affected squares, hopefully
-			[conns.append(s) for s in squaresList if self in s.path]
+			squaresCoords[self.coord] = self			
 
 			for s in squaresList:
-				if s:
-					s.getConnections()
-					s.getConnected()
-					if not s.connected:
-						fail = 1
-						break
+				s.getConnections()
+				s.getConnected()
+				if s.adjNum == 0:
+					fail = 1
+					break
 
 
 			if fail:
 				del squaresCoords[self.coord]
 				self.coord = oldCoord
 				squaresCoords[self.coord] = self
-				for s in squaresList:
+				for s in conns:
 					if s:
 						self.getConnections()
 						s.getConnected()
