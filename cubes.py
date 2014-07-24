@@ -44,6 +44,10 @@ MASTER = 0
 
 # Functions, Procedures, Classes & Methods --------------------------------------------------------
 
+class coordinate(tuple):
+	def __add__(self, direction):
+		return coordinate((self[X] + DC[direction][X], self[Y] + DC[direction][Y]))
+
 # Should this be an object method?
 def shortestPath(start, goal):
 	def reconstruct_path(navigated, current):
@@ -121,17 +125,13 @@ def clock(orientation, direction, num = 1):
 		num -= 1
 	return orientation
 
-def coordAddDir(a,b):
-	return (a[X] + DC[b][X], a[Y] + DC[b][Y])
-
-
 
 class Square(object):
 	def __new__(cls, parent = 0, parentDir = 0, master = 0, x = -1, y = -1):
 		if(master):
 			return object.__new__(cls)
 		elif(parent):
-			coord = coordAddDir(parent.coord, parentDir)#(parent.coord[X] + DC[parentDir][X], parent.coord[Y] + DC[parentDir][Y])
+			coord = parent.coord + parentDir #(parent.coord[X] + DC[parentDir][X], parent.coord[Y] + DC[parentDir][Y])
 			if coord not in squaresCoords.keys():
 				if(master or parentDir not in parent.connections.keys()):
 					return object.__new__(cls)
@@ -148,16 +148,14 @@ class Square(object):
 			if self.master:
 				global MASTER 
 				MASTER = self
-				self.coord = (0, 0)
+				self.coord = coordinate((0, 0))
 				squaresList.append(self)
 				squaresCoords[self.coord] = self
 				self.getConnections()
 				self.getConnected()
 			else:
-				self.coord = (parent.coord[X] + DC[parentDir][X], parent.coord[Y] + DC[parentDir][Y])
-				# self.x = parent.x + DC[parentDir][X]
-				# self.y = parent.y + DC[parentDir][Y]
-
+				self.coord = parent.coord + parentDir
+				
 				self.connections[opposite(parentDir)] = parent
 				parent.connections[parentDir] = self
 
@@ -174,7 +172,7 @@ class Square(object):
 		self.connections = {}
 		self.adjNum = 0
 		for d in DB:
-			c = (self.coord[X]+DC[d][X], self.coord[Y]+DC[d][Y])
+			c = self.coord + d # (self.coord[X]+DC[d][X], self.coord[Y]+DC[d][Y])
 			if c in squaresCoords.keys():
 				self.connections[d] = squaresCoords[c]
 				squaresCoords[c].connections[opposite(d)] = self
@@ -199,7 +197,7 @@ class Square(object):
 				self.path = 0
 				self.connected = 0
 
-			
+	
 	# Pivot self in given direction
 	def pivot(self, direction):
 		self.getConnections()
@@ -218,17 +216,15 @@ class Square(object):
 		# Is there a square adjacent to the pivot square
 		if opposite(pivot) not in self.connections.keys():
 			# Space adjacent to the target square in the direction that it will pivot
-			temp = coordAddDir(self.coord, t)
-
-
-			if coordAddDir(temp, opposite(pivot)) not in squaresCoords:
-				if coordAddDir(temp, pivot) in squaresCoords or coordAddDir(temp, t) in squaresCoords:
-					if self.move(coordAddDir(self.coord, t)):
+			temp = self.coord + t
+			if (temp + opposite(pivot)) not in squaresCoords:
+				if (temp + pivot) in squaresCoords or (temp + t) in squaresCoords:
+					if self.move(self.coord + t):
 						self.orientation = clock(self.orientation, direction, 2)
 						return 1
 				else:
-					if coordAddDir(temp, clock(pivot, -direction)) not in squaresCoords:
-						if self.move(coordAddDir(self.coord, clock(pivot, -direction))):
+					if temp + clock(pivot, -direction) not in squaresCoords:
+						if self.move(self.coord + clock(pivot, -direction)):
 							self.orientation = clock(self.orientation, direction, 4)
 							return 1
 		return 0
