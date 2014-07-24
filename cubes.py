@@ -48,62 +48,6 @@ class coordinate(tuple):
 	def __add__(self, direction):
 		return coordinate((self[X] + DC[direction][X], self[Y] + DC[direction][Y]))
 
-# Should this be an object method?
-def shortestPath(start, goal):
-	def reconstruct_path(navigated, current):
-		if current in navigated:
-			p = reconstruct_path(navigated, navigated[current])
-			return p + [current]
-		else:
-			return [current]
-
-	def hc_est(start, goal):
-		a = abs(start.coord[X] - goal.coord[X])
-		b = abs(start.coord[Y] - goal.coord[Y])
-		return a+b
-
-	def lowestF(oset):
-		lowest = 0
-		for s in oset:
-			if lowest == 0:
-				lowest = s
-			elif f_score[s] < f_score[lowest]:
-				lowest = s
-		return lowest
-
-
-	closedset = set([])
-	openset = set([start])
-	navigated = {}
-
-	g_score = {}
-	f_score = {}
-
-	g_score[start] = 0
-	f_score[start] = g_score[start] + hc_est(start, goal)
-
-
-
-	while len(openset) != 0:
-		current = lowestF(openset)
-		
-		if current == goal:
-			return reconstruct_path(navigated, goal)
-		
-		openset.remove(current)
-		closedset.add(current)
-		for d in DA:
-			if d in current.connections.keys():
-				neighbor = current.connections[d]
-				if neighbor not in closedset:
-					tent_g_score = g_score[current] + 1
-					if neighbor not in openset or tent_g_score < g_score[neighbor]:
-						navigated[neighbor] = current
-						g_score[neighbor] = tent_g_score
-						f_score[neighbor] = g_score[neighbor] + hc_est(neighbor, goal)
-						if neighbor not in openset:
-							openset.add(neighbor)
-	return 0
 
 # Returns opposite direction of orientation
 def opposite(orientation):
@@ -152,7 +96,7 @@ class Square(object):
 				squaresList.append(self)
 				squaresCoords[self.coord] = self
 				self.getConnections()
-				self.getConnected()
+				# self.getConnected()
 			else:
 				self.coord = parent.coord + parentDir
 				
@@ -160,7 +104,7 @@ class Square(object):
 				parent.connections[parentDir] = self
 
 				self.getConnections()
-				self.getConnected()
+				# self.getConnected()
 
 				squaresCoords[self.coord] = self
 				squaresList.append(self)
@@ -182,21 +126,7 @@ class Square(object):
 
 
 	
-	# Finds if self is connected to the master square
-	# 	Important for making sure squares stay connected in one group
-	def getConnected(self):
-		if self.master:
-			self.path = [self]
-			self.connected = 1
-		else:
-			path = shortestPath(self, MASTER)
-			if path:
-				self.path = path
-				self.connected = 1
-			else:
-				self.path = 0
-				self.connected = 0
-
+	
 	
 	# Pivot self in given direction
 	def pivot(self, direction):
@@ -248,7 +178,7 @@ class Square(object):
 
 			for s in squaresList:
 				s.getConnections()
-				s.getConnected()
+				# s.getConnected()
 				if s.adjNum == 0:
 					fail = 1
 					break
@@ -261,7 +191,7 @@ class Square(object):
 				for s in conns:
 					if s:
 						self.getConnections()
-						s.getConnected()
+						# s.getConnected()
 				return 0
 			else:
 				return 1
