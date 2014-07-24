@@ -1,10 +1,11 @@
-#!/usr/local/bin/ipython3
+#!/usr/bin/python3
 
 from tkinter import *
 from tkinter import ttk
 import colorsys
 import cubes
 import random
+import time
 
 # Size of window
 SIZE = 512
@@ -46,7 +47,7 @@ OUTLINE = "black"
 FILL = "grey"
 
 # -1: No internal lines; 0: lines pointing in direction of orientation; 1: lines indicating connections
-LINES = 1
+LINES = 0
 # Include diagonal connections
 DIAGONALS = 1
 
@@ -140,16 +141,23 @@ squares = []
 # 		s.draw()
 
 
-# # Pivot a random square in a random location
-# def randPivot(event = None):
-# 	n = 0
-# 	shuffled = list(squaresList)
-# 	random.shuffle(shuffled)
-# 	for s in shuffled:
-# 		d = random.choice([CW, CCW])
-# 		n = s.pivot(d)
-# 		if n:
-# 			return n
+# Pivot a random square in a random location
+def randPivot():
+	n = 0
+	shuffled = list(squares)
+	random.shuffle(shuffled)
+	for s in shuffled:
+		c1 = s.coord
+		d = random.choice([CW, CCW])
+		if s.pivot(d):
+			# canvas.itemconfig(drawings[s][0], fill="red")
+			# root.update()
+			# time.sleep(.5)
+			c2 = s.coord
+			moveDrawing(s, c1, c2)
+			# canvas.itemconfig(drawings[s][0], fill=FILL)
+			# root.update()
+			return n
 								
 
 # Create a new square in a random location
@@ -167,7 +175,7 @@ def randNewSquare(event = None):
 				for s in picks[n]:
 					opens = []
 					for d in DA:
-						if s.connections[d] == 0:
+						if d not in s.connections:
 							opens.append(d)
 					random.shuffle(opens)
 					for d in opens:
@@ -198,6 +206,7 @@ def drawSquare(square):
 		canvas.tag_bind(d, '<Button-3>', lambda event, arg=square: rClick(event, arg))
 		canvas.tag_bind(d, '<Button-1>', lambda event, arg=square: lClick(event, arg))
 	drawings[square] = drawing
+	square.drawing = drawing
 	root.update()
 
 
@@ -258,19 +267,28 @@ def mClick(event):
 		drawSquare(s)
 
 def lClick(event, square):
+	c1 = square.coord
 	square.pivot(CCW)
-	redraw()
+	c2 = square.coord
+	moveDrawing(square, c1, c2)
 
 def rClick(event, square):
+	c1 = square.coord
 	square.pivot(CW)
-	redraw()
+	c2 = square.coord
+	moveDrawing(square, c1, c2)
 
 
-def redraw():
-	canvas.delete("all")
-	for s in squares:
-		drawSquare(s)
-
+def moveDrawing(square, c1, c2):
+	x1 = c1[X]
+	y1 = -c1[Y]
+	x2 = c2[X]
+	y2 = -c2[Y]
+	dx = (x2-x1)*SCALE
+	dy = (y2-y1)*SCALE
+	
+	canvas.move(drawings[square][0], dx, dy)
+	root.update()
 
 
 # Initialize tkinter ------------------------------------------
@@ -304,18 +322,19 @@ squares.append(e)
 n = cubes.Square(m, N)
 squares.append(n)
 
-
-# n.delete()
-
-# drawSquare(m)
-
-while len(squares) < 20:
-	new = randNewSquareFast()
+while len(squares) < 200:
+	new = randNewSquare()
 	squares.append(new)
-
 
 
 if DRAW:	
 	for s in squares:
 		drawSquare(s)
-	root.mainloop()
+
+def rp():
+	randPivot()
+	root.after(0, rp)
+
+root.after(0, rp)
+root.mainloop()
+

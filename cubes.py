@@ -42,7 +42,7 @@ squaresCoords = {}
 
 MASTER = 0
 
-# Functions, Procedures, Classes & Methods -----------------------------------------------------
+# Functions, Procedures, Classes & Methods --------------------------------------------------------
 
 # Should this be an object method?
 def shortestPath(start, goal):
@@ -203,35 +203,34 @@ class Square(object):
 	# Pivot self in given direction
 	def pivot(self, direction):
 		self.getConnections()
+
+		# Get "pivot", the diriection from the target square to the adjacent square on which the target square pivots ----------------------
 		for d in DA:
 			if d in self.connections.keys():
 				pivot = d
 
-		if opposite(pivot) not in self.connections.keys():
+		t = clock(pivot, -direction, 2)
+		if t in self.connections.keys():
+			pivot = t
 			t = clock(pivot, -direction, 2)
-			if t in self.connections.keys():
-				pivot = t
-				t = clock(pivot, -direction, 2)
+		# -----------------------------------------------------------------------------------------
 
+		# Is there a square adjacent to the pivot square
+		if opposite(pivot) not in self.connections.keys():
+			# Space adjacent to the target square in the direction that it will pivot
 			temp = coordAddDir(self.coord, t)
 
-			if temp not in squaresCoords:
-				if coordAddDir(temp, pivot) in squaresCoords:
-					if coordAddDir(temp, opposite(pivot)) not in squaresCoords:
-						if self.move(coordAddDir(self.coord, t)):
-							self.orientation = clock(self.orientation, direction, 2)
-							return 1
+
+			if coordAddDir(temp, opposite(pivot)) not in squaresCoords:
+				if coordAddDir(temp, pivot) in squaresCoords or coordAddDir(temp, t) in squaresCoords:
+					if self.move(coordAddDir(self.coord, t)):
+						self.orientation = clock(self.orientation, direction, 2)
+						return 1
 				else:
-					if coordAddDir(temp, t) in squaresCoords:
-						if self.move(coordAddDir(self.coord, t)):
-							self.orientation = clock(self.orientation, direction, 2)
+					if coordAddDir(temp, clock(pivot, -direction)) not in squaresCoords:
+						if self.move(coordAddDir(self.coord, clock(pivot, -direction))):
+							self.orientation = clock(self.orientation, direction, 4)
 							return 1
-					else:
-						t = clock(pivot, -direction)
-						if coordAddDir(temp, t) not in squaresCoords:
-							if self.move(coordAddDir(self.coord, t)):
-								self.orientation = clock(self.orientation, direction, 4)
-								return 1
 		return 0
 
 
