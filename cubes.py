@@ -143,48 +143,14 @@ class Square(object):
 	
 
 	# Pivot self in given direction
-	def pivot(self, direction = 0, piv = 0):
+	def pivot(self, direction = 0, p = 0):
 		if piv == 0:
 			p = self.getPivot(direction)
-		else:
-			p = piv
 		if self.move(p[0]):
 			self.orientation = clock(self.orientation, direction, p[1])
 			self.pivots += 1
 			return 1
-		# self.getConnections()
-		# pivot = -1
-		# # Get "pivot", the diriection from the target square to the adjacent square on which the target square pivots ----------------------
-		# for d in DA:
-		# 	if d in self.connections.keys():
-		# 		pivot = d
-		# if pivot >= 0:
-		# 	t = clock(pivot, -direction, 2)
-		# 	if t in self.connections.keys():
-		# 		pivot = t
-		# 		t = clock(pivot, -direction, 2)
-		# 	# -----------------------------------------------------------------------------------------
-
-		# 	# Is there a square adjacent to the pivot square
-		# 	if opposite(pivot) not in self.connections.keys():
-		# 		# Space adjacent to the target square in the direction that it will pivot
-		# 		temp = self.coord + t
-		# 		if (temp + opposite(pivot)) not in squaresCoords:
-		# 			if (temp + pivot) in squaresCoords or (temp + t) in squaresCoords:
-		# 				if self.move(self.coord + t):
-		# 					self.orientation = clock(self.orientation, direction, 2)
-		# 					self.pivots += 1
-		# 					return 1
-		# 			else:
-		# 				if temp + clock(pivot, -direction) not in squaresCoords:
-		# 					if self.move(self.coord + clock(pivot, -direction)):
-		# 						self.orientation = clock(self.orientation, direction, 4)
-		# 						self.pivots += 1
-		# 						return 1
-		# return 0
-
-
-	
+			
 
 	# -- Make this private -- #
 	# Move self to (x,y)
@@ -206,12 +172,3 @@ class Square(object):
 		else:
 			return 0
 			
-	
-
-
-
-	
-
-
-
-
