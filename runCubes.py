@@ -6,11 +6,12 @@ import colorsys
 import cubes
 import random
 import time
+import math
 
 # Size of window
 SIZE = 512
 # Size of squares
-SCALE = 16
+SCALE = 8
 
 # Derived info about window and grid
 GSIZE = int(SIZE/SCALE)-1
@@ -43,121 +44,54 @@ DA = [N,E,S,W]
 DB = [N,NE,E,SE,S,SW,W,NW]
 DC = [(0,-1), (1,-1), (1,0), (1,1), (0,1), (-1,1), (-1,0), (-1,-1)]
 
-OUTLINE = "black"
-FILL = "grey"
-
-# -1: No internal lines; 0: lines pointing in direction of orientation; 1: lines indicating connections
-LINES = 0
-# Include diagonal connections
-DIAGONALS = 1
+OUTLINE = "#000000"
+FILL = "#0047AB"
 
 drawings = {}
-changed = []
 squares = []
-# # Draw self
-# def draw(self):
-# 	self.erase()
-# 	x1 = ((self.x+1)*SCALE)
-# 	y1 = ((self.y+1)*SCALE)
-# 	x2 = ((self.x+1)*SCALE)+SCALE
-# 	y2 = ((self.y+1)*SCALE)+SCALE
-# 	self.drawing = canvas.create_rectangle(x1, y1, x2, y2, outline = self.outline, fill = self.fill, width=2)
-# 	canvas.tag_bind(self.drawing, '<Button-3>', self.rClick)
-# 	canvas.tag_bind(self.drawing, '<Button-1>', self.lClick)
-# 	canvas.tag_bind(self.drawing, '<Button-2>', self.drawPath)
-	
-# 	if LINES == 1:
-# 		if DIAGONALS:
-# 			l = DB
-# 		else:
-# 			l = DA
-# 		for c in l:
-# 			if self.connections[c] != 0:
-# 				x1 = SCALE*(self.x+1.5)
-# 				y1 = SCALE*(self.y+1.5)
-# 				x2 = SCALE*((self.x+1.5)+(.5*DC[c][0]))
-# 				y2 = SCALE*((self.y+1.5)+(.5*DC[c][1]))
-# 				self.connLines[c] = canvas.create_line(x1, y1, x2, y2)
-# 				canvas.tag_bind(self.connLines[c], '<Button-3>', self.rClick)
-# 				canvas.tag_bind(self.connLines[c], '<Button-1>', self.lClick)
-# 				canvas.tag_bind(self.connLines[c], '<Button-2>', self.drawPath)
-# 	elif LINES == 0:
-# 		x1 = SCALE*(self.x+1.5)
-# 		y1 = SCALE*(self.y+1.5)
-# 		x2 = SCALE*((self.x+1.5)+(.5*DC[self.orientation][0]))
-# 		y2 = SCALE*((self.y+1.5)+(.5*DC[self.orientation][1]))
-# 		self.dirLine = canvas.create_line(x1, y1, x2, y2)
-# 		canvas.tag_bind(self.dirLine, '<Button-3>', self.rClick)
-# 		canvas.tag_bind(self.dirLine, '<Button-1>', self.lClick)
-# 		canvas.tag_bind(self.dirLine, '<Button-2>', self.drawPath)
-# 	root.update()
 
-# # Erase self
-# def erase(self):
-# 	if(self.drawing):
-# 		canvas.delete(self.drawing)
-# 		self.drawing = 0
-# 	if LINES:
-# 		for l in self.connLines:
-# 			canvas.delete(l)
-# 			l = 0
-# 	if(self.dirLine):
-# 		canvas.delete(self.dirLine)
-# 	root.update()
+def adjTo(coord):
+	a = 0
+	for d in DA:
+		if coord + d in cubes.squaresCoords:
+			a = a+1
+	return a
 
+def pivotTo(dest):
+	while True:
+		s = random.choice(squares)
+		while s.adjNum > 2:
+			s = random.choice(squares)
 
-# # Find the shortest path between two squares
+		c1 = s.coord
 
+		d = random.choice([CW, CCW])
 
+		p = s.getPivot(d)
 
-# def colorPathDists():
-# 	maxDist = 0
-# 	for s in squaresList:
-# 		s.getConnected()
-# 		if s.distance > maxDist:
-# 			maxDist = s.distance
-# 	for s in squaresList:
-# 		r, g, b = colorsys.hls_to_rgb(s.distance / maxDist, .5, .5)
-# 		s.fill = '#' + '%02x%02x%02x' % (int(r*256%255), int(g*256%255), int(b*256%255))
-# 		s.draw()
-
-# def drawPath(event = None, start = 0, goal = 0):
-# 	for s in squaresList:
-# 		s.fill = FILL
-# 		s.draw()
-# 	if start == 0:
-# 		start = random.choice(squaresList)
-# 	if goal == 0:
-# 		goal = MASTER
-# 	p = shortestPath(start, goal)
-# 	l = len(p)
-# 	distance = 0
-# 	for s in p:
-# 		r, g, b = colorsys.hls_to_rgb(distance / l, .5, .5)
-# 		# r, g, b = hex(int(256*r)), hex(int(256*g)), hex(int(256*b))
-# 		s.fill = '#' + '%02x%02x%02x' % (int(r*256%255), int(g*256%255), int(b*256%255))
-# 		# print(s.fill)
-# 		distance += 1
-# 		s.draw()
+		if p:
+			c2 = p[0]
+			if adjTo(c2) > 1 and (math.sqrt(abs(c2[X]-dest[X])**2 + abs(c2[Y]-dest[Y])**2) <= math.sqrt(abs(c1[Y]-dest[Y])**2 + abs(c1[X]-dest[X])**2)) :
+				s.pivot(piv = p)
+				moveDrawing(s, c1, c2)
+				root.update()
+				return
 
 
 # Pivot a random square in a random location
 def randPivot():
-	n = 0
-	shuffled = list(squares)
-	random.shuffle(shuffled)
-	for s in shuffled:
+	while True:
+		s = random.choice(squares)
+		while s.adjNum > 2:
+			s = random.choice(squares)
 		c1 = s.coord
+
 		d = random.choice([CW, CCW])
-		if s.pivot(d):
-			# canvas.itemconfig(drawings[s][0], fill="red")
-			# root.update()
-			# time.sleep(.5)
+		if s.pivot(d):			
 			c2 = s.coord
 			moveDrawing(s, c1, c2)
-			# canvas.itemconfig(drawings[s][0], fill=FILL)
-			# root.update()
-			return n
+			root.update()
+			return
 								
 
 # Create a new square in a random location
@@ -183,62 +117,6 @@ def randNewSquare(event = None):
 						if m:
 							return m
 
-def drawSquare(square):
-	drawing = []
-	x1 = ((square.coord[X]+GCENTER+1)*SCALE)
-	y1 = ((-square.coord[Y]+GCENTER+1)*SCALE)
-	x2 = ((square.coord[X]+GCENTER+1)*SCALE)+SCALE
-	y2 = ((-square.coord[Y]+GCENTER+1)*SCALE)+SCALE
-	drawing.append(canvas.create_rectangle(x1, y1, x2, y2,  fill = square.fill, outline = OUTLINE, width=2))
-	if LINES:
-		if DIAGONALS:
-			a = DB
-		else:
-			a = DA
-		for d in a:
-			if d in square.connections.keys():
-				x1 = SCALE*(square.coord[X]+GCENTER+1.5)
-				y1 = SCALE*(-square.coord[Y]+GCENTER+1.5)
-				x2 = SCALE*((square.coord[X]+GCENTER+1.5)+(.5*DC[d][0]))
-				y2 = SCALE*((-square.coord[Y]+GCENTER+1.5)+(.5*DC[d][1]))
-				drawing.append(canvas.create_line(x1, y1, x2, y2))
-	for d in drawing:
-		canvas.tag_bind(d, '<Button-3>', lambda event, arg=square: rClick(event, arg))
-		canvas.tag_bind(d, '<Button-1>', lambda event, arg=square: lClick(event, arg))
-	drawings[square] = drawing
-	square.drawing = drawing
-	root.update()
-
-
-		
-
-def printSquares():
-	for y in range(GCENTER,-GCENTER, -1):
-		for x in range(-GCENTER,GCENTER):
-			if (x, y) not in cubes.squaresCoords.keys():
-				print('-', end = ' ')
-			else:
-				s = cubes.squaresCoords[(x, y)]
-				n = 0
-				for c in DA:
-					if c in s.connections.keys():
-						n += 1
-				if cubes.squaresCoords[(x, y)].master:
-					print(n, end = '!')
-				else:
-					print(n, end = ' ')
-
-				# if n == 1:
-				# 	print('- ', end = '')
-				# if n == 2:
-				# 	print('= ', end = '')
-				# if n == 3:
-				# 	print('% ', end = '')
-				# if n == 4:
-				# 	print('+ ', end = '')
-		print('')
-	print('')
-
 # Create a new square in a random location
 def randNewSquareFast():
 	shuffledSquares = list(squares)
@@ -258,6 +136,20 @@ def randNewSquareFast():
 			break
 
 	return cubes.Square(parent, parentDir)
+
+def drawSquare(square):
+	x1 = ((square.coord[X]+GCENTER+1)*SCALE)
+	y1 = ((-square.coord[Y]+GCENTER+1)*SCALE)
+	x2 = ((square.coord[X]+GCENTER+1)*SCALE)+SCALE
+	y2 = ((-square.coord[Y]+GCENTER+1)*SCALE)+SCALE
+	drawing = (canvas.create_rectangle(x1, y1, x2, y2,  fill = FILL, outline = OUTLINE, width=2))
+	canvas.tag_bind(drawing, '<Button-3>', lambda event, arg=square: rClick(event, arg))
+	canvas.tag_bind(drawing, '<Button-1>', lambda event, arg=square: lClick(event, arg))
+	drawings[square] = drawing
+	root.update()
+
+
+
 
 def mClick(event):
 	new = randNewSquareFast()
@@ -287,7 +179,7 @@ def moveDrawing(square, c1, c2):
 	dx = (x2-x1)*SCALE
 	dy = (y2-y1)*SCALE
 	
-	canvas.move(drawings[square][0], dx, dy)
+	canvas.move(drawings[square], dx, dy)
 	root.update()
 
 
@@ -316,13 +208,7 @@ if DRAW:
 m = cubes.Square(master = 1)
 squares.append(m)
 
-e = cubes.Square(m, E)
-squares.append(e)
-
-n = cubes.Square(m, N)
-squares.append(n)
-
-while len(squares) < 200:
+while len(squares) < 100:
 	new = randNewSquare()
 	squares.append(new)
 
@@ -332,9 +218,14 @@ if DRAW:
 		drawSquare(s)
 
 def rp():
-	randPivot()
+	# randPivot()
+	pivotTo((100,100))
 	root.after(0, rp)
 
-root.after(0, rp)
-root.mainloop()
+
+try:
+	root.after(0, rp)
+	root.mainloop()
+except:
+	pass
 
