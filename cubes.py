@@ -44,18 +44,8 @@ def opposite(orientation):
 
 # Increments orientation in direction num times
 def clock(orientation, direction, num = 1):
-	while num > 0:
-		if direction == CW:
-			if orientation == NW:
-				orientation = N
-			else:
-				orientation = orientation+1
-		elif direction == CCW:
-			if orientation == N:
-				orientation = NW
-			else:
-				orientation = orientation-1
-		num -= 1
+	for n in range(num):
+		orientation = (orientation + direction) % 8
 	return orientation
 
 
@@ -139,17 +129,15 @@ class Square(object):
 		return 0
 
 
-		
-	
-
 	# Pivot self in given direction
 	def pivot(self, direction = 0, p = 0):
-		if piv == 0:
+		if p == 0:
 			p = self.getPivot(direction)
-		if self.move(p[0]):
-			self.orientation = clock(self.orientation, direction, p[1])
-			self.pivots += 1
-			return 1
+		if p:
+			if self.move(p[0]):
+				self.orientation = clock(self.orientation, direction, p[1])
+				self.pivots += 1
+				return 1
 			
 
 	# -- Make this private -- #

@@ -11,7 +11,7 @@ import math
 # Size of window
 SIZE = 512
 # Size of squares
-SCALE = 8
+SCALE = 4
 
 # Derived info about window and grid
 GSIZE = int(SIZE/SCALE)-1
@@ -58,7 +58,7 @@ def adjTo(coord):
 	return a
 
 def pivotTo(dest):
-	while True:
+	for n in range(10):
 		s = random.choice(squares)
 		while s.adjNum > 2:
 			s = random.choice(squares)
@@ -72,7 +72,7 @@ def pivotTo(dest):
 		if p:
 			c2 = p[0]
 			if adjTo(c2) > 1 and (math.sqrt(abs(c2[X]-dest[X])**2 + abs(c2[Y]-dest[Y])**2) <= math.sqrt(abs(c1[Y]-dest[Y])**2 + abs(c1[X]-dest[X])**2)) :
-				s.pivot(piv = p)
+				s.pivot(p = p)
 				moveDrawing(s, c1, c2)
 				root.update()
 				return
@@ -209,7 +209,7 @@ m = cubes.Square(master = 1)
 squares.append(m)
 
 while len(squares) < 100:
-	new = randNewSquare()
+	new = randNewSquareFast()
 	squares.append(new)
 
 
@@ -218,8 +218,9 @@ if DRAW:
 		drawSquare(s)
 
 def rp():
-	# randPivot()
-	pivotTo((100,100))
+	randPivot()
+	for n in range(10):
+		pivotTo((-50,0))
 	root.after(0, rp)
 
 
