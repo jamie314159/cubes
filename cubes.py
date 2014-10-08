@@ -48,7 +48,6 @@ def clock(orientation, direction, num = 1):
 		orientation = (orientation + direction) % 8
 	return orientation
 
-
 class Square(object):
 	def __new__(cls, parent = 0, parentDir = 0, master = 0, x = -1, y = -1):
 		if(master):
@@ -152,11 +151,14 @@ class Square(object):
 		if newCoord not in squaresCoords.keys():
 			del squaresCoords[self.coord]
 			self.coord = newCoord
-			squaresCoords[self.coord] = self			
-
+			squaresCoords[self.coord] = self
 			for s in squaresList:
 				s.getConnections()
 			return 1
 		else:
 			return 0
 			
+
+	
+
+

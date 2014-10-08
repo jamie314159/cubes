@@ -11,7 +11,7 @@ import math
 # Size of window
 SIZE = 512
 # Size of squares
-SCALE = 4
+SCALE = 16
 
 # Derived info about window and grid
 GSIZE = int(SIZE/SCALE)-1
@@ -50,6 +50,24 @@ FILL = "#0047AB"
 drawings = {}
 squares = []
 
+def inGroup(p):
+	n = 0
+	group = {p.connections[x] for x in p.connections}
+	while len(group) > n:
+		n = len(group)
+		for s in cubes.squaresList:
+			if s in group:
+				for d in DA:
+					if d in s.connections:
+						group.add(s.connections[d])
+
+
+	if len(group) == len(cubes.squaresList):
+		return 1
+	else:
+		return 0
+
+
 def adjTo(coord):
 	a = 0
 	for d in DA:
@@ -73,8 +91,11 @@ def pivotTo(dest):
 			c2 = p[0]
 			if adjTo(c2) > 1 and (abs(c2[X]-dest[X]) + abs(c2[Y]-dest[Y]) <= abs(c1[Y]-dest[Y]) + abs(c1[X]-dest[X])) :
 				s.pivot(p = p)
-				moveDrawing(s, c1, c2)
-				root.update()
+				if inGroup(s):
+					moveDrawing(s, c1, c2)
+					root.update()
+				else:
+					s.move(c1)
 				return
 
 
@@ -89,8 +110,11 @@ def randPivot():
 		d = random.choice([CW, CCW])
 		if s.pivot(d):			
 			c2 = s.coord
-			moveDrawing(s, c1, c2)
-			root.update()
+			if inGroup(s):
+				moveDrawing(s, c1, c2)
+				root.update()
+			else:
+				s.move(c1)
 			return
 								
 
@@ -162,13 +186,30 @@ def lClick(event, square):
 	c1 = square.coord
 	square.pivot(CCW)
 	c2 = square.coord
-	moveDrawing(square, c1, c2)
+	if inGroup(square):
+		moveDrawing(square, c1, c2)
+		root.update()
+	else:
+		print("a")
+		square.move(c1)
+		print("b")
+
+	# moveDrawing(square, c1, c2)
 
 def rClick(event, square):
 	c1 = square.coord
 	square.pivot(CW)
 	c2 = square.coord
-	moveDrawing(square, c1, c2)
+	if inGroup(square):
+		moveDrawing(square, c1, c2)
+		root.update()
+	else:
+		print("a")
+
+		square.move(c1)
+		print("b")
+
+	# moveDrawing(square, c1, c2)
 
 
 def moveDrawing(square, c1, c2):
@@ -208,7 +249,7 @@ if DRAW:
 m = cubes.Square(master = 1)
 squares.append(m)
 
-while len(squares) < 100:
+while len(squares) < 50:
 	new = randNewSquareFast()
 	squares.append(new)
 
@@ -219,13 +260,13 @@ if DRAW:
 
 def rp():
 	randPivot()
-	for n in range(10):
-		pivotTo((-50,0))
+	# for n in range(10):
+	# 	pivotTo((10,10))
 	root.after(0, rp)
 
 
 try:
-	root.after(0, rp)
+	# root.after(0, rp)
 	root.mainloop()
 except:
 	pass
