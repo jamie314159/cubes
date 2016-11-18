@@ -23,7 +23,7 @@ NW 	= 7
 # Lists of directions for iteration
 DA = [N,E,S,W]
 DB = [N,NE,E,SE,S,SW,W,NW]
-DC = [(0,1), (1,1), (1,0), (1,-1), (0,-1), (-1,-1), (-1,0), (-1,1)]
+DC = [(0,-1), (1,-1), (1,0), (1,1), (0,1), (-1,1), (-1,0), (-1,-1)]
 
 pivotTable = [[W,N],[N,E],[E,S],[S,W]]
 
@@ -56,6 +56,7 @@ class Square(object):
 			# self.fill = "grey"
 			#self.master = master
 			#self.connections = {}
+			self.drawings = []
 			self.location = (x,y)
 			self.orientation = N
 			
@@ -65,6 +66,7 @@ class Square(object):
 
 	# Pivot self in given direction
 	def pivot(self, corner, direction):
+		print(pivotTable[corner][direction])
 		self.move(pivotTable[corner][direction])
 		self.rotate(direction)
 	
