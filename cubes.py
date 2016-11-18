@@ -27,6 +27,8 @@ DC = [(0,-1), (1,-1), (1,0), (1,1), (0,1), (-1,1), (-1,0), (-1,-1)]
 
 pivotTable = [[W,N],[N,E],[E,S],[S,W]]
 
+
+
 squaresList = []
 # squaresCoords = [[0 for i in range(GSIZE)] for j in range(GSIZE)]
 squaresCoords = {}
@@ -39,7 +41,6 @@ class coordinate(tuple):
 	def __add__(self, direction):
 		return coordinate((self[X] + DC[direction][X], self[Y] + DC[direction][Y]))
 
-
 # Returns opposite direction of orientation
 def opposite(orientation):
 	return((orientation+4)%8)
@@ -51,6 +52,33 @@ def clock(orientation, direction, num = 1):
 		orientation = (orientation + d) % 8
 	return orientation
 
+def moveResult(square, direction):
+	return (square.location[X]+DC[direction][X],square.location[Y]+DC[direction][Y])
+
+def pivotResult(square, corner, direction):
+	return moveResult(square, pivotTable[corner][direction])
+	
+
+
+def canPivot(square, corner, direction):
+	r = 1
+	x1 = square.location[X]
+	y1 = square.location[Y]
+	s = pivotResult(square,corner,direction)
+	x2 = s[X]
+	y2 = s[Y]
+	pivotCheckTable = [[[(x1,y1+1),(x2,y2+1),(x2,y2)],[(x1+1,y1),(x2+1,y2),(x2,y2)]],
+				   	   [[(x1-1,y1),(x2-1,y2),(x2,y2)],[(x1,y1+1),(x2,y2+1),(x2,y2)]],
+				   	   [[(x1,y1-1),(x2,y2-1),(x2,y2)],[(x1-1,y1),(x2-1,y2),(x2,y2)]],
+				   	   [[(x1+1,y1),(x2+1,y2),(x2,y2)],[(x1,y1-1),(x2,y2-1),(x2,y2)]]]
+	
+	for square in squaresList:
+		if square.location in pivotCheckTable[corner][direction]:
+			r = 0
+			continue
+	return r
+
+
 class Square(object):
 	def __init__(self, x = -1, y = -1):
 			# self.fill = "grey"
@@ -59,16 +87,24 @@ class Square(object):
 			self.drawings = []
 			self.location = (x,y)
 			self.orientation = N
+			squaresList.append(self)
 			
-	
+	# Pivot self in given direction about specified corner
+	def pivot(self, corner, direction):
+		if canPivot(self,corner,direction):
+			self.move(pivotTable[corner][direction])
+			self.rotate(direction)
+
+		## Finds next 90 pivot
+		# newCorner = ((corner+1)%4 if direction == CW else (corner-1)%4)
+		# if canPivot(self,newCorner,direction):
+		# 	self.move(pivotTable[newCorner][direction])
+		# 	self.rotate(direction)
+
 	def rotate(self, direction):
 		self.orientation = clock(self.orientation, direction, 2)
 
-	# Pivot self in given direction
-	def pivot(self, corner, direction):
-		print(pivotTable[corner][direction])
-		self.move(pivotTable[corner][direction])
-		self.rotate(direction)
+	
 	
 	def move(self, direction):
 		self.location = (self.location[X]+DC[direction][X],self.location[Y]+DC[direction][Y])

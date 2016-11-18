@@ -68,9 +68,9 @@ def drawSquare(square):
 	cy = y1+SCALE/2
 	
 	square.drawings.append(canvas.create_line(cx,cy, cx+(SCALE*DC[square.orientation][X])/2, cy+(SCALE*DC[square.orientation][Y])/2))
-	for drawing in square.drawings:
-		canvas.tag_bind(drawing, '<Button-3>', lambda event, arg=square: rClick(event, arg))
-		canvas.tag_bind(drawing, '<Button-1>', lambda event, arg=square: lClick(event, arg))
+	# for drawing in square.drawings:
+	# 	canvas.tag_bind(drawing, '<Button-3>', lambda event, arg=square: rClick(event, arg))
+	# 	canvas.tag_bind(drawing, '<Button-1>', lambda event, arg=square: lClick(event, arg))
 
 	c0 = canvas.create_rectangle(x1, y1, x1+SCALE/4, y1+SCALE/4,   width = 1, fill = cornerColors[int((square.orientation/2-0)%4)])
 	c1 = canvas.create_rectangle(x2-SCALE/4, y1, x2, y1+SCALE/4,   width = 1, fill = cornerColors[int((square.orientation/2-1)%4)])
@@ -148,12 +148,14 @@ if DRAW:
 
 # -------------------------------------------------------------
 
-a = cubes.Square(0,0)
+a = cubes.Square(2,3)
 b = cubes.Square(3,3)
-b.pivot(0,CW)
+c = cubes.Square(3,4)
+# b.pivot(0,CW)
 
 
 squares.append(b)
+squares.append(c)
 squares.append(a)
 
 
