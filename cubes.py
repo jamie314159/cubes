@@ -49,44 +49,25 @@ def clock(orientation, direction, num = 1):
 	return orientation
 
 class Square(object):
-	def __new__(cls, parent = 0, parentDir = 0, master = 0, x = -1, y = -1):
-		if(master):
-			return object.__new__(cls)
-		elif(parent):
-			coord = parent.coord + parentDir #(parent.coord[X] + DC[parentDir][X], parent.coord[Y] + DC[parentDir][Y])
-			if coord not in squaresCoords.keys():
-				if(master or parentDir not in parent.connections.keys()):
-					return object.__new__(cls)
-					
-
-
-	def __init__(self, parent = 0, parentDir = 0, master = 0, x = -1, y = -1):
+	def __init__(self, x = -1, y = -1):
 			# self.fill = "grey"
-			self.master = master
+			#self.master = master
 			self.connections = {}
 			self.orientation = N
 			self.adjNum = 0
 			self.pivots = 0
 
-			if self.master:
-				global MASTER 
-				MASTER = self
-				self.coord = coordinate((0, 0))
-				squaresList.append(self)
-				squaresCoords[self.coord] = self
-				self.getConnections()
-			else:
-				self.coord = parent.coord + parentDir
-				
-				self.connections[opposite(parentDir)] = parent
-				parent.connections[parentDir] = self
+                         self.coord = parent.coord + parentDir
+                        
+                        self.connections[opposite(parentDir)] = parent
+                        parent.connections[parentDir] = self
 
-				self.getConnections()
+                        self.getConnections()
 
-				squaresCoords[self.coord] = self
-				squaresList.append(self)
-				for s in self.connections.keys():
-					self.connections[s].getConnections()
+                        squaresCoords[self.coord] = self
+                        squaresList.append(self)
+                        for s in self.connections.keys():
+                                self.connections[s].getConnections()
 			
 	# Gets the direcetions from self which have squares
 	def getConnections(self):
