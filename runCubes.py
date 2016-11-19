@@ -156,6 +156,9 @@ a = addSquare(2,3)
 b = addSquare(3,3)
 c = addSquare(3,4)
 
+
+
+
 if DRAW:	
 	for s in squares:
 		drawSquare(s)

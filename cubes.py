@@ -64,29 +64,34 @@ def pivotResult(square, corner, direction):
 	return moveResult(square, pivotTable[corner][direction])
 	
 
-
 def canPivot(square, corner, direction):
 	r = 1
 	x1 = square.location[X]
 	y1 = square.location[Y]
-	s = pivotResult(square,corner,direction)
-	x2 = s[X]
-	y2 = s[Y]
+	pivotLocation = pivotResult(square,corner,direction)
+	x2 = pivotLocation[X]
+	y2 = pivotLocation[Y]
 	
-	# Get the locations where squares whould interfere with this pivot
-	# 
+	# Get the locations where squares whould interfere with this pivot	# 
 	# Get list off ofsets from pre computed table
 	cl = pivotCheckTable[corner][direction]
 	# Add offsets to coordinates to find list of coordinates to check
 	checkList = [(x1+cl[0][0],y1+cl[0][1]),(x2+cl[1][0],y2+cl[1][1]),(x2+cl[2][0],y2+cl[2][1])]
 	
 	# Check interfering locations
-	for square in squaresList:
-		if square.location in checkList:
+	for coord in checkList:
+		if squareAt(coord):
 			r = 0
 			continue
 	return r
 
+def squareAt(coord):
+	r = False
+	for square in squaresList:
+		if square.location == coord:
+			r = True
+			continue
+	return r
 
 class Square(object):
 	def __init__(self, x = -1, y = -1):
