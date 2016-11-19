@@ -27,13 +27,18 @@ DC = [(0,-1), (1,-1), (1,0), (1,1), (0,1), (-1,1), (-1,0), (-1,-1)]
 
 pivotTable = [[W,N],[N,E],[E,S],[S,W]]
 
+# pivotCheckTable = [[[(x1,y1+1),(x2,y2+1),(x2,y2)],[(x1+1,y1),(x2+1,y2),(x2,y2)]],
+# 				   	   [[(x1-1,y1),(x2-1,y2),(x2,y2)],[(x1,y1+1),(x2,y2+1),(x2,y2)]],
+# 				   	   [[(x1,y1-1),(x2,y2-1),(x2,y2)],[(x1-1,y1),(x2-1,y2),(x2,y2)]],
+# 				   	   [[(x1+1,y1),(x2+1,y2),(x2,y2)],[(x1,y1-1),(x2,y2-1),(x2,y2)]]]
 
+pivotCheckTable = [[[(0,1),(0,1),(0,0)],[(1,0),(1,0),(0,0)]],
+			   	   [[(-1,0),(-1,0),(0,0)],[(0,1),(0,1),(0,0)]],
+			   	   [[(0,-1),(0,-1),(0,0)],[(-1,0),(-1,0),(0,0)]],
+			   	   [[(1,0),(1,0),(0,0)],[(0,-1),(0,-1),(0,0)]]]
 
 squaresList = []
-# squaresCoords = [[0 for i in range(GSIZE)] for j in range(GSIZE)]
-squaresCoords = {}
 
-MASTER = 0
 
 # Functions, Procedures, Classes & Methods --------------------------------------------------------
 
@@ -45,7 +50,7 @@ class coordinate(tuple):
 def opposite(orientation):
 	return((orientation+4)%8)
 
-# Increments orientation in direction num times
+# Increments orientation in direction by 45 degrees num times
 def clock(orientation, direction, num = 1):
 	d = (1 if direction == CW else -1)
 	for n in range(num):
@@ -67,13 +72,17 @@ def canPivot(square, corner, direction):
 	s = pivotResult(square,corner,direction)
 	x2 = s[X]
 	y2 = s[Y]
-	pivotCheckTable = [[[(x1,y1+1),(x2,y2+1),(x2,y2)],[(x1+1,y1),(x2+1,y2),(x2,y2)]],
-				   	   [[(x1-1,y1),(x2-1,y2),(x2,y2)],[(x1,y1+1),(x2,y2+1),(x2,y2)]],
-				   	   [[(x1,y1-1),(x2,y2-1),(x2,y2)],[(x1-1,y1),(x2-1,y2),(x2,y2)]],
-				   	   [[(x1+1,y1),(x2+1,y2),(x2,y2)],[(x1,y1-1),(x2,y2-1),(x2,y2)]]]
 	
+	# Get the locations where squares whould interfere with this pivot
+	# 
+	# Get list off ofsets from pre computed table
+	cl = pivotCheckTable[corner][direction]
+	# Add offsets to coordinates to find list of coordinates to check
+	checkList = [(x1+cl[0][0],y1+cl[0][1]),(x2+cl[1][0],y2+cl[1][1]),(x2+cl[2][0],y2+cl[2][1])]
+	
+	# Check interfering locations
 	for square in squaresList:
-		if square.location in pivotCheckTable[corner][direction]:
+		if square.location in checkList:
 			r = 0
 			continue
 	return r

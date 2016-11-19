@@ -124,6 +124,10 @@ def rClick(event, square):
 	root.update()
 
 
+def addSquare(x,y):
+	newSquare = cubes.Square(x,y)
+	squares.append(newSquare)
+	return(newSquare)
 
 
 # Initialize tkinter ------------------------------------------
@@ -148,16 +152,9 @@ if DRAW:
 
 # -------------------------------------------------------------
 
-a = cubes.Square(2,3)
-b = cubes.Square(3,3)
-c = cubes.Square(3,4)
-# b.pivot(0,CW)
-
-
-squares.append(b)
-squares.append(c)
-squares.append(a)
-
+a = addSquare(2,3)
+b = addSquare(3,3)
+c = addSquare(3,4)
 
 if DRAW:	
 	for s in squares:
