@@ -57,18 +57,26 @@ def clock(orientation, direction, num = 1):
 		orientation = (orientation + d) % 8
 	return orientation
 
-def moveResult(square, direction):
-	return (square.location[X]+DC[direction][X],square.location[Y]+DC[direction][Y])
+def squareAt(coord):
+	r = False
+	for square in squaresList:
+		if square.location == coord:
+			r = True
+			continue
+	return r
 
-def pivotResult(square, corner, direction):
-	return moveResult(square, pivotTable[corner][direction])
+
+def moveResult(location, direction):
+	return (location[X]+DC[direction][X],location[Y]+DC[direction][Y])
+
+def pivotResult(location, corner, direction):
+	return moveResult(location, pivotTable[corner][direction])
 	
 
-def canPivot(square, corner, direction):
-	r = 1
-	x1 = square.location[X]
-	y1 = square.location[Y]
-	pivotLocation = pivotResult(square,corner,direction)
+def canPivot(location, corner, direction):
+	x1 = location[X]
+	y1 = location[Y]
+	pivotLocation = pivotResult(location,corner,direction)
 	x2 = pivotLocation[X]
 	y2 = pivotLocation[Y]
 	
@@ -81,17 +89,11 @@ def canPivot(square, corner, direction):
 	# Check interfering locations
 	for coord in checkList:
 		if squareAt(coord):
-			r = 0
-			continue
-	return r
+			return False
+	
+	return True
 
-def squareAt(coord):
-	r = False
-	for square in squaresList:
-		if square.location == coord:
-			r = True
-			continue
-	return r
+
 
 class Square(object):
 	def __init__(self, x = -1, y = -1):
@@ -105,15 +107,26 @@ class Square(object):
 			
 	# Pivot self in given direction about specified corner
 	def pivot(self, corner, direction):
-		if canPivot(self,corner,direction):
-			self.move(pivotTable[corner][direction])
-			self.rotate(direction)
+		if canPivot(self.location,corner,direction):
+			pivotLocation = pivotResult(self.location, corner, direction)
+			adjecentList = [squareAt((pivotLocation[X]+DC[d][X],pivotLocation[Y]+DC[d][Y])) for d in DA if (pivotLocation[X]+DC[d][X],pivotLocation[Y]+DC[d][Y]) != self.location]
+			diagonalList = [squareAt((pivotLocation[X]+DC[d+1][X],pivotLocation[Y]+DC[d+1][Y])) for d in DA if (pivotLocation[X]+DC[d+1][X],pivotLocation[Y]+DC[d+1][Y]) != self.location]
+			if True not in adjecentList:
+				if True in diagonalList:
+					# Check if we can pivot 90 degrees further to reach another square
+					pCorner = (corner+1)%4 if direction == CW else (corner-1)%4
+					if canPivot(pivotLocation, pCorner, direction):
+						self.move(pivotTable[corner][direction])
+						self.rotate(direction)
+						self.move(pivotTable[pCorner][direction])
+						self.rotate(direction)
+						return
+			else:
+				self.move(pivotTable[corner][direction])
+				self.rotate(direction)
 
-		## Finds next 90 pivot
-		# newCorner = ((corner+1)%4 if direction == CW else (corner-1)%4)
-		# if canPivot(self,newCorner,direction):
-		# 	self.move(pivotTable[newCorner][direction])
-		# 	self.rotate(direction)
+
+		
 
 	def rotate(self, direction):
 		self.orientation = clock(self.orientation, direction, 2)
