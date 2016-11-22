@@ -9,11 +9,13 @@ import time
 import math
 
 # Size of window
-SIZE = 320
+SIZE = 1000
 # Size of squares
-SCALE = 32
+SCALE = 10
 
 OFFSET = 10
+
+INTERACT = 0
 
 # Derived info about window and grid
 GSIZE = int(SIZE/SCALE)-1
@@ -72,24 +74,25 @@ def drawSquare(square):
 	# 	canvas.tag_bind(drawing, '<Button-3>', lambda event, arg=square: rClick(event, arg))
 	# 	canvas.tag_bind(drawing, '<Button-1>', lambda event, arg=square: lClick(event, arg))
 
-	c0 = canvas.create_rectangle(x1, y1, x1+SCALE/4, y1+SCALE/4,   width = 1, fill = cornerColors[int((square.orientation/2-0)%4)])
-	c1 = canvas.create_rectangle(x2-SCALE/4, y1, x2, y1+SCALE/4,   width = 1, fill = cornerColors[int((square.orientation/2-1)%4)])
-	c2 = canvas.create_rectangle(x2-SCALE/4, y2-SCALE/4, x2, y2,   width = 1, fill = cornerColors[int((square.orientation/2-2)%4)])
-	c3 = canvas.create_rectangle(x1, y2-SCALE/4, x1+SCALE/4, y2,   width = 1, fill = cornerColors[int((square.orientation/2-3)%4)])
+	if INTERACT:
+		c0 = canvas.create_rectangle(x1, y1, x1+SCALE/4, y1+SCALE/4,   width = 1, fill = cornerColors[int((square.orientation/2-0)%4)])
+		c1 = canvas.create_rectangle(x2-SCALE/4, y1, x2, y1+SCALE/4,   width = 1, fill = cornerColors[int((square.orientation/2-1)%4)])
+		c2 = canvas.create_rectangle(x2-SCALE/4, y2-SCALE/4, x2, y2,   width = 1, fill = cornerColors[int((square.orientation/2-2)%4)])
+		c3 = canvas.create_rectangle(x1, y2-SCALE/4, x1+SCALE/4, y2,   width = 1, fill = cornerColors[int((square.orientation/2-3)%4)])
 
-	square.drawings.append(c0)
-	square.drawings.append(c1)
-	square.drawings.append(c2)
-	square.drawings.append(c3)
+		square.drawings.append(c0)
+		square.drawings.append(c1)
+		square.drawings.append(c2)
+		square.drawings.append(c3)
 
-	canvas.tag_bind(c0, '<Button-1>', lambda event, args=[square,0]: pivotSquareL(event,args))
-	canvas.tag_bind(c0, '<Button-3>', lambda event, args=[square,0]: pivotSquareR(event,args))
-	canvas.tag_bind(c1, '<Button-1>', lambda event, args=[square,1]: pivotSquareL(event,args))
-	canvas.tag_bind(c1, '<Button-3>', lambda event, args=[square,1]: pivotSquareR(event,args))
-	canvas.tag_bind(c2, '<Button-1>', lambda event, args=[square,2]: pivotSquareL(event,args))
-	canvas.tag_bind(c2, '<Button-3>', lambda event, args=[square,2]: pivotSquareR(event,args))
-	canvas.tag_bind(c3, '<Button-1>', lambda event, args=[square,3]: pivotSquareL(event,args))
-	canvas.tag_bind(c3, '<Button-3>', lambda event, args=[square,3]: pivotSquareR(event,args))
+		canvas.tag_bind(c0, '<Button-1>', lambda event, args=[square,0]: pivotSquareL(event,args))
+		canvas.tag_bind(c0, '<Button-3>', lambda event, args=[square,0]: pivotSquareR(event,args))
+		canvas.tag_bind(c1, '<Button-1>', lambda event, args=[square,1]: pivotSquareL(event,args))
+		canvas.tag_bind(c1, '<Button-3>', lambda event, args=[square,1]: pivotSquareR(event,args))
+		canvas.tag_bind(c2, '<Button-1>', lambda event, args=[square,2]: pivotSquareL(event,args))
+		canvas.tag_bind(c2, '<Button-3>', lambda event, args=[square,2]: pivotSquareR(event,args))
+		canvas.tag_bind(c3, '<Button-1>', lambda event, args=[square,3]: pivotSquareL(event,args))
+		canvas.tag_bind(c3, '<Button-3>', lambda event, args=[square,3]: pivotSquareR(event,args))
 	
 	
 	root.update()
@@ -125,10 +128,21 @@ def rClick(event, square):
 
 
 def addSquare(x,y):
-	newSquare = cubes.Square(x,y)
-	squares.append(newSquare)
-	return(newSquare)
+	if cubes.squareAt((x,y)):
+		return False
+	else:
+		newSquare = cubes.Square(x,y)
+		squares.append(newSquare)
+		return(newSquare)
 
+def addSquareAdj(square, direction):
+	x,y = square.location[X]+DC[direction][X],square.location[Y]+DC[direction][Y]
+	if cubes.squareAt((x,y)):
+		return False
+	else:
+		newSquare = cubes.Square(x,y)
+		squares.append(newSquare)
+		return(newSquare)
 
 # Initialize tkinter ------------------------------------------
 
@@ -137,7 +151,7 @@ if DRAW:
 	root.minsize(SIZE, SIZE)
 	root.geometry(str(int(SIZE+SCALE)) + 'x' + str(int(SIZE+SCALE)))
 
-	canvas = Canvas(root, width=SIZE+SCALE, height=SIZE+SCALE)
+	canvas = Canvas(root, width=SIZE+SCALE, height=SIZE+SCALE, bg = "black")
 	canvas.place(relx=.5, rely=.5, anchor=CENTER)
 	#canvas.bind('<Button-2>', mClick)
 
@@ -146,28 +160,35 @@ if DRAW:
 	if(GRID):
 		i=0
 		while(i <= SIZE):
-			canvas.create_line(i, 0, i, SIZE,  width=1)
-			canvas.create_line(0, i, SIZE, i,  width=1)
+			canvas.create_line(i, 0, i, SIZE,  width=1, fill = "white")
+			canvas.create_line(0, i, SIZE, i,  width=1, fill = "white")
 			i += SCALE
 
 # -------------------------------------------------------------
 
-a = addSquare(2,3)
-b = addSquare(3,3)
-c = addSquare(3,4)
+for i in range(1):
+	squareAdded = False
+	while squareAdded == False:
+		squareAdded = addSquare(random.randrange(0,99,9), random.randrange(0,99,9))
 
-
-
+for i in range(10):
+	squareAdded = False
+	while squareAdded == False:
+		squareAdded = addSquareAdj(random.choice(squares), random.choice([N,S,E,W]))
 
 if DRAW:	
 	for s in squares:
 		drawSquare(s)
 
-
-
+def rp():
+	s = random.choice(squares)
+	if s.pivot(random.choice([0,1,2,3]), random.choice([CW,CCW])):
+		drawSquare(s)
+		root.update()
+	root.after(5, rp)
 
 try:
-	# root.after(0, rp)
+	root.after(0, rp)
 	root.mainloop()
 except:
 	pass

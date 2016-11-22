@@ -62,7 +62,7 @@ def squareAt(coord):
 	for square in squaresList:
 		if square.location == coord:
 			r = True
-			continue
+			break
 	return r
 
 
@@ -79,6 +79,15 @@ def canPivot(location, corner, direction):
 	pivotLocation = pivotResult(location,corner,direction)
 	x2 = pivotLocation[X]
 	y2 = pivotLocation[Y]
+
+	# Check if square starts attached
+	adjecentList = [squareAt((location[X]+DC[d][X],location[Y]+DC[d][Y])) for d in DA if (location[X]+DC[d][X],location[Y]+DC[d][Y]) != location]
+	if True not in adjecentList:
+		return False
+
+	# Check if square will remain in bounds
+	if (x2<0) or (x2>99) or (y2<0) or (y2>99):
+		return False
 	
 	# Get the locations where squares whould interfere with this pivot	# 
 	# Get list off ofsets from pre computed table
@@ -120,10 +129,12 @@ class Square(object):
 						self.rotate(direction)
 						self.move(pivotTable[pCorner][direction])
 						self.rotate(direction)
-						return
+						return True
 			else:
 				self.move(pivotTable[corner][direction])
 				self.rotate(direction)
+				return True
+		return False
 
 
 		
